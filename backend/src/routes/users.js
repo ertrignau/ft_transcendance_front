@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/15 12:34:11 by eric              #+#    #+#             */
-/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:45:06 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,8 @@ import {
 	getUserByUsername,
 	updateProfile,
 	getUserPosts,
+	getFollowers,
+	getFollowing,
 	followUserByUsername,
 	unfollowUserByUsername,
 } from '../controllers/userController.js';
@@ -34,6 +36,12 @@ router.get('/:username', optionalAuth, getUserByUsername);
 
 // GET /api/users/:username/posts - Posts d'un utilisateur
 router.get('/:username/posts', optionalAuth, getUserPosts);
+
+// GET /api/users/:username/followers - Liste des followers
+router.get('/:username/followers', optionalAuth, getFollowers);
+
+// GET /api/users/:username/following - Liste des abonnements
+router.get('/:username/following', optionalAuth, getFollowing);
 
 // POST /api/users/:username/follow - Suivre un utilisateur (protégé)
 router.post('/:username/follow', authenticateToken, followUserByUsername);

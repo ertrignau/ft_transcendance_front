@@ -6,20 +6,21 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/09 14:20:44 by eric              #+#    #+#             */
-/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:45:01 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { FiUserPlus, FiUserCheck, FiUserX, FiSearch } from "react-icons/fi";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { followersAPI } from "../../services/api";
 import { useAppContext } from "../../context/AppContext";
 
 export default function Followers() {
 	const { t } = useTranslation();
-	const [activeTab, setActiveTab] = useState("followers");
+	const [searchParams] = useSearchParams();
+	const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "followers");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [followers, setFollowers] = useState([]);
 	const [following, setFollowing] = useState([]);
@@ -33,6 +34,14 @@ export default function Followers() {
 			loadFollowing();
 		}
 	}, [user]);
+
+	// Synchroniser l'onglet avec le paramètre URL
+	useEffect(() => {
+		const tab = searchParams.get('tab');
+		if (tab === 'followers' || tab === 'following') {
+			setActiveTab(tab);
+		}
+	}, [searchParams]);
 
 	const loadFollowers = async () => {
 		try {

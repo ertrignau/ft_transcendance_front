@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/15 12:33:55 by eric              #+#    #+#             */
-/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:45:05 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -236,6 +236,111 @@ export const getUserPosts = async (req, res) => {
         });
     } catch (error) {
         console.error('Erreur getUserPosts:', error);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+};
+
+/**
+ * Récupère la liste des followers d'un utilisateur
+ */
+export const getFollowers = async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        const user = await prisma.user.findUnique({ where: { username } });
+        if (!user) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        }
+
+        const followers = await prisma.follower.findMany({
+            where: { followingId: user.id },
+            include: {
+                follower: {
+                    select: {
+                        id: true,
+                        username: true,
+                        firstName: true,
+                        lastName: true,
+                        avatar: true,
+                        bio: true,
+                        campus: true,
+                        level: true,
+                    }
+                }
+            }
+        });
+
+        // Pour chaque follower, vérifier si l'utilisateur courant les suit en retour
+        const currentUserId = req.user?.id;
+        const result = await Promise.all(followers.map(async (f) => {
+            let isFollowingBack = false;
+            if (currentUserId) {
+                const mutual = await prisma.follower.findUnique({
+                    where: {
+                        followerId_followingId: {
+                            followerId: user.id,
+                            followingId: f.follower.id,
+                        }
+                    }
+                });
+                isFollowingBack = !!mutual;
+            }
+            return { ...f.follower, isFollowingBack };
+        }));
+
+        res.json(result);
+    } catch (error) {
+        console.error('Erreur getFollowers:', error);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+};
+
+/**
+ * Récupère la liste des utilisateurs que suit un utilisateur (following)
+ */
+export const getFollowing = async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        const user = await prisma.user.findUnique({ where: { username } });
+        if (!user) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        }
+
+        const following = await prisma.follower.findMany({
+            where: { followerId: user.id },
+            include: {
+                following: {
+                    select: {
+                        id: true,
+                        username: true,
+                        firstName: true,
+                        lastName: true,
+                        avatar: true,
+                        bio: true,
+                        campus: true,
+                        level: true,
+                    }
+                }
+            }
+        });
+
+        // Pour chaque personne suivie, vérifier si elle suit en retour
+        const result = await Promise.all(following.map(async (f) => {
+            const followsMe = await prisma.follower.findUnique({
+                where: {
+                    followerId_followingId: {
+                        followerId: f.following.id,
+                        followingId: user.id,
+                    }
+                }
+            });
+            return { ...f.following, followsMe: !!followsMe };
+        }));
+
+        res.json(result);
+    } catch (error) {
+        console.error('Erreur getFollowing:', error);
         res.status(500).json({ error: 'Erreur serveur' });
     }
 };
