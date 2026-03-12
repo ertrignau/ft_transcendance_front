@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/12 15:59:56 by eric              #+#    #+#             */
-/*   Updated: 2026/03/12 16:10:21 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:07:33 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ import Profile from "./pages/Profile/Profile";
 import PublicProfile from "./pages/Profile/PublicProfile";
 import Settings from "./pages/Settings/Settings";
 import Layout from "./components/Layout";
+import AuthLoader from "./components/AuthLoader";
 import Followers from "./pages/Followers/Followers";
 import Notifications from "./pages/Notifications/Notifications";
 
@@ -31,24 +32,26 @@ function App()
     <AppProvider>
       <MessagesProvider>
         <BrowserRouter>
-          <Routes>
-            {/*ROUTE SANS NAVBAR */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/callback" element={<Callback />} />
+          <AuthLoader>
+            <Routes>
+              {/*ROUTE SANS NAVBAR */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/callback" element={<Callback />} />
 
-            {/*ROUTE AVEC NAVBAR*/}
-            <Route path="/feed" element={<Layout><Feed /></Layout>} />
-            <Route path="/messages" element={<Layout><Messages /></Layout>}  />
-            <Route path="/notifications" element={<Layout><Notifications /></Layout>}  />
-            <Route path="/profile" element={<Layout><Profile /></Layout>} />
-            <Route path="/profile/:username" element={<Layout><PublicProfile /></Layout> } />
-            <Route path="/settings" element={<Layout><Settings /></Layout>} />
-            <Route path="/followers" element={<Layout><Followers /></Layout>} />
+              {/*ROUTE AVEC NAVBAR*/}
+              <Route path="/feed" element={<Layout><Feed /></Layout>} />
+              <Route path="/messages" element={<Layout><Messages /></Layout>}  />
+              <Route path="/notifications" element={<Layout><Notifications /></Layout>}  />
+              <Route path="/profile" element={<Layout><Profile /></Layout>} />
+              <Route path="/profile/:username" element={<Layout><PublicProfile /></Layout> } />
+              <Route path="/settings" element={<Layout><Settings /></Layout>} />
+              <Route path="/followers" element={<Layout><Followers /></Layout>} />
 
-            {/*REDIRECTION PAR DEFAUT*/}
-            <Route path="/" element={<Navigate to="/login" />} />
-          </Routes>
+              {/*REDIRECTION PAR DEFAUT*/}
+              <Route path="/" element={<Navigate to="/login" />} />
+            </Routes>
+          </AuthLoader>
         </BrowserRouter>
       </MessagesProvider>
     </AppProvider>

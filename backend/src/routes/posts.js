@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/15 12:34:08 by eric              #+#    #+#             */
-/*   Updated: 2026/02/17 14:28:05 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ import {
 	updatePost,
 	deletePost
 } from '../controllers/postController.js';
+import { likePost, unlikePost } from '../controllers/likeController.js';
 
 const router = express.Router();
 
@@ -36,6 +37,18 @@ router.patch('/:id', authenticateToken, updatePost);
 
 // DELETE /api/posts/:id - Supprimer un post (protégé)
 router.delete('/:id', authenticateToken, deletePost);
+
+// POST /api/posts/:id/like - Liker un post (protégé)
+router.post('/:id/like', authenticateToken, (req, res) => {
+    req.params.postId = req.params.id;
+    likePost(req, res);
+});
+
+// DELETE /api/posts/:id/like - Unliker un post (protégé)
+router.delete('/:id/like', authenticateToken, (req, res) => {
+    req.params.postId = req.params.id;
+    unlikePost(req, res);
+});
 
 export default router;
 

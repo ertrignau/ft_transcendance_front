@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/15 12:33:55 by eric              #+#    #+#             */
-/*   Updated: 2026/02/15 13:25:36 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,6 +97,24 @@ export const getUserByUsername = async (req, res) => {
                         followers: true,
                         following: true,
                     }
+                },
+                posts: {
+                    take: 20,
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                username: true,
+                                firstName: true,
+                                lastName: true,
+                                avatar: true,
+                            }
+                        },
+                        _count: {
+                            select: { likes: true }
+                        }
+                    }
                 }
             }
         });
@@ -104,6 +122,9 @@ export const getUserByUsername = async (req, res) => {
         if (!user) {
             return res.status(404).json({ error: 'Utilisateur non trouvé' });
         }
+
+        // isRegistered = l'utilisateur existe dans notre BDD (toujours true ici)
+        const result = { ...user, isRegistered: true };
 
         // Vérifie si l'utilisateur connecté suit cet utilisateur
         if (req.user) {
@@ -115,10 +136,12 @@ export const getUserByUsername = async (req, res) => {
                     }
                 }
             });
-            user.isFollowing = !!isFollowing;
+            result.isFollowing = !!isFollowing;
+        } else {
+            result.isFollowing = false;
         }
 
-        res.json(user);
+        res.json(result);
     } catch (error) {
         console.error('Erreur getUserByUsername:', error);
         res.status(500).json({ error: 'Erreur serveur' });
@@ -213,6 +236,90 @@ export const getUserPosts = async (req, res) => {
         });
     } catch (error) {
         console.error('Erreur getUserPosts:', error);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+};
+
+/**
+ * Suivre un utilisateur par son username
+ */
+export const followUserByUsername = async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        const userToFollow = await prisma.user.findUnique({ where: { username } });
+        if (!userToFollow) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        }
+
+        if (userToFollow.id === req.user.id) {
+            return res.status(400).json({ error: 'Vous ne pouvez pas vous suivre vous-même' });
+        }
+
+        const existing = await prisma.follower.findUnique({
+            where: {
+                followerId_followingId: {
+                    followerId: req.user.id,
+                    followingId: userToFollow.id,
+                }
+            }
+        });
+
+        if (existing) {
+            return res.status(400).json({ error: 'Vous suivez déjà cet utilisateur' });
+        }
+
+        await prisma.follower.create({
+            data: {
+                followerId: req.user.id,
+                followingId: userToFollow.id,
+            }
+        });
+
+        res.status(201).json({ message: 'Utilisateur suivi avec succès' });
+    } catch (error) {
+        console.error('Erreur followUserByUsername:', error);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+};
+
+/**
+ * Ne plus suivre un utilisateur par son username
+ */
+export const unfollowUserByUsername = async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        const userToUnfollow = await prisma.user.findUnique({ where: { username } });
+        if (!userToUnfollow) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        }
+
+        const follow = await prisma.follower.findUnique({
+            where: {
+                followerId_followingId: {
+                    followerId: req.user.id,
+                    followingId: userToUnfollow.id,
+                }
+            }
+        });
+
+        if (!follow) {
+            return res.status(404).json({ error: 'Vous ne suivez pas cet utilisateur' });
+        }
+
+        await prisma.follower.delete({
+            where: {
+                followerId_followingId: {
+                    followerId: req.user.id,
+                    followingId: userToUnfollow.id,
+                }
+            }
+        });
+
+        res.json({ message: 'Unfollow effectué avec succès' });
+    } catch (error) {
+        console.error('Erreur unfollowUserByUsername:', error);
         res.status(500).json({ error: 'Erreur serveur' });
     }
 };

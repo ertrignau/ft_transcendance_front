@@ -6,12 +6,13 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 16:21:25 by eric              #+#    #+#             */
-/*   Updated: 2026/02/19 17:36:33 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { Button } from "../utils";
 import { FiHeart, FiMessageCircle, FiShare2, FiTrash2, FiMoreVertical } from "react-icons/fi";
 import CommentSection from "./CommentSection";
@@ -35,20 +36,26 @@ export default function PostCard({ post, onLike, onDelete })
 
 	return (
 		<div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors">
-			<div className="flex items-start space-x-4">
-				{/*AVATAR */}
-				<img
-					src={post.avatar}
-					alt={post.author}
-					className="w-12 h-12 rounded-full"
-				/>
-				<div className="flex-1">
-					{/*HEADER (auteur + date) */}
-					<div className="flex justify-between items-start mb-2">
+			<div className="flex-1">
+				{/*HEADER (auteur + date) */}
+				<div className="flex justify-between items-start mb-2">
+					<div className="flex items-center space-x-3">
+						<Link to={`/profile/${post.author}`}>
+							<img
+								src={post.avatar || `https://ui-avatars.com/api/?name=${post.author || 'User'}&background=3b82f6&color=fff`}
+								alt={post.author}
+								className="w-12 h-12 rounded-full hover:ring-2 hover:ring-blue-500 transition object-cover"
+							/>
+						</Link>
 						<div>
-							<h3 className="font-bold text-gray-900 dark:text-white">{post.author}</h3>
+							<Link to={`/profile/${post.author}`}>
+								<h3 className="font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition">
+									{post.author}
+								</h3>
+							</Link>
 							<p className="text-sm text-gray-500 dark:text-gray-400">{post.date}</p>
-                        </div>
+						</div>
+					</div>
 						{/* Menu 3 points (visible seulement si c'est son propre post) */}
 						{isOwner && (
 							<div className="relative">
@@ -99,8 +106,7 @@ export default function PostCard({ post, onLike, onDelete })
 					</div>
 
 					{/* Section commentaires */}
-					{showComments && <CommentSection postId={post.id} />}
-				</div>
+				{showComments && <CommentSection postId={post.id} />}
 			</div>
 		</div>
 	);

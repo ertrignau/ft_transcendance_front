@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 13:47:42 by eric              #+#    #+#             */
-/*   Updated: 2026/03/03 10:52:39 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ export default function Navbar()
 			<div className="p-4 border-b dark:border-gray-700 flex justify-center">
 				<Link to="/feed" className="flex items-center justify-center">
 					<img 
-						src="42_logo.png" 
+						src="/42_logo.png" 
 						alt="42 Logo" 
 						className="w-12 h-12 object-contain"
 					/>

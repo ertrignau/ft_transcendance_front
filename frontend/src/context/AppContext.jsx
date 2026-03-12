@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:12:55 by eric              #+#    #+#             */
-/*   Updated: 2026/03/03 10:36:41 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:07:33 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -191,16 +191,32 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    const toggleLike = (postId) => {
-        setPosts(posts.map(post => 
-            post.id === postId 
-                ? { 
-                    ...post, 
-                    liked: !post.liked,
-                    likes: post.liked ? post.likes - 1 : post.likes + 1 
-                  }
-                : post
+    const toggleLike = async (postId) => {
+        const post = posts.find(p => p.id === postId);
+        if (!post) return;
+
+        // Mise à jour optimiste
+        setPosts(posts.map(p =>
+            p.id === postId
+                ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 }
+                : p
         ));
+
+        try {
+            if (post.liked) {
+                await postsAPI.unlikePost(postId);
+            } else {
+                await postsAPI.likePost(postId);
+            }
+        } catch (error) {
+            console.error("❌ Erreur like:", error);
+            // Rollback
+            setPosts(posts.map(p =>
+                p.id === postId
+                    ? { ...p, liked: post.liked, likes: post.likes }
+                    : p
+            ));
+        }
     };
 
     const deletePost = async (postId) => {

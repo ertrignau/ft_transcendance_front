@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/15 12:34:03 by eric              #+#    #+#             */
-/*   Updated: 2026/02/15 12:41:43 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,6 @@ import { handleOAuthCallback, getMe, logout } from '../controllers/authControlle
 const router = express.Router();
 
 // GET /api/auth/42 -> redirection vers OAuth 42
-
 router.get('/42', passport.authenticate('42'));
 
 router.get('/42/callback', 
@@ -29,7 +28,7 @@ router.get('/42/callback',
 	handleOAuthCallback
 );
 
-// GET /api/auth/me -> recupere l'utilisateur connecter (protected)
+// GET /api/auth/me -> recupere l'utilisateur connecté (protected)
 router.get('/me', authenticateToken, getMe);
 
 // POST /api/auth/logout -> Deco (protected)

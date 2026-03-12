@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 14:07:20 by eric              #+#    #+#             */
-/*   Updated: 2026/03/03 10:47:38 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,12 +39,9 @@ export default function Profile()
     // Filtrer les posts de l'utilisateur connecté
     const userPosts = posts.filter(post => post.userId === user?.id);
     
-    // Récupère les infos de l'utilisateur connecté depuis l'API
+    // Récupère les infos de l'utilisateur connecté depuis l'API (toujours pour avoir les stats à jour)
     useEffect(() => {
         const fetchUserData = async () => {
-            // Si on a déjà un utilisateur chargé, pas besoin de refetch
-            if (user) return;
-            
             try {
                 setLoading(true);
                 const userData = await authAPI.getCurrentUser();
@@ -58,7 +55,7 @@ export default function Profile()
         };
         
         fetchUserData();
-    }, [user, setUser]);
+    }, []);
 
     const handleCreatePost = (postData) => {
         console.log("Création post:", postData);

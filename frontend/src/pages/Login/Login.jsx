@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 13:17:00 by eric              #+#    #+#             */
-/*   Updated: 2026/03/03 11:28:04 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input, Button } from "../../utils";
 import { authAPI } from "../../services/api";
+import { useAppContext } from "../../context/AppContext";
 
 export default function Login() 
 {
@@ -22,6 +23,7 @@ export default function Login()
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
 	const navigate = useNavigate();
+	const { setUser } = useAppContext();
 
 	const handleSubmit = async (e) => 
 	{
@@ -37,6 +39,10 @@ export default function Login()
 			if (response.refresh_token) {
 				localStorage.setItem('refresh_token', response.refresh_token);
 			}
+
+			// Charger et stocker l'utilisateur dans le contexte
+			const userData = await authAPI.getCurrentUser();
+			setUser(userData);
 
 			// Rediriger vers le feed
 			navigate('/feed');
@@ -111,7 +117,7 @@ export default function Login()
 				>
 					Se connecter avec
 					<img 
-						src="42_logo.png" 
+						src="/42_logo.png" 
 						alt="42 Logo" 
 						className="w-6 h-6 object-contain invert brightness-0 invert"
 					/>

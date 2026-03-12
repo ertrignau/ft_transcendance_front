@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 10:35:59 by eric              #+#    #+#             */
-/*   Updated: 2026/02/19 16:06:49 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:00:23 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -176,6 +176,25 @@ export const profileAPI = {
 	// Recup post like par un USER
 	getUserLikes: async (username, page = 1, limit = 10) => {
 		return fetchWithAuth(`/users/${username}/likes?page=${page}&limit=${limit}`);
+	},
+
+	// Recup profil public par username (alias de getProfile)
+	getByUsername: async (username) => {
+		return fetchWithAuth(`/users/${username}`);
+	},
+
+	// Suivre un utilisateur
+	follow: async (username) => {
+		return fetchWithAuth(`/users/${username}/follow`, {
+			method: 'POST',
+		});
+	},
+
+	// Ne plus suivre un utilisateur
+	unfollow: async (username) => {
+		return fetchWithAuth(`/users/${username}/follow`, {
+			method: 'DELETE',
+		});
 	},
 };
 

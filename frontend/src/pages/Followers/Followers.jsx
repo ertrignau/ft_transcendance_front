@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/09 14:20:44 by eric              #+#    #+#             */
-/*   Updated: 2026/02/19 17:36:39 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,7 @@ export default function Followers() {
 		try {
 			setLoading(true);
 			const data = await followersAPI.getFollowers(user.username);
-			setFollowers(data.followers || []);
+			setFollowers(Array.isArray(data) ? data : (data.followers || []));
 		} catch (error) {
 			console.error(t('followers.errorLoadingFollowers'), error);
 		} finally {
@@ -49,7 +49,7 @@ export default function Followers() {
 	const loadFollowing = async () => {
 		try {
 			const data = await followersAPI.getFollowing(user.username);
-			setFollowing(data.following || []);
+			setFollowing(Array.isArray(data) ? data : (data.following || []));
 		} catch (error) {
 			console.error(t('followers.errorLoadingFollowing'), error);
 		}
