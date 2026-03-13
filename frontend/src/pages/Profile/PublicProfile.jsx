@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/12 16:02:01 by eric              #+#    #+#             */
-/*   Updated: 2026/03/12 17:27:23 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/13 11:03:32 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,7 @@ export default function PublicProfile() {
 			...prev,
 			_count: {
 				...prev._count,
-				followers: Math.max(0, (prev._count?.followers || 0) + (wasFollowing ? -1 : 1)),
+				following: Math.max(0, (prev._count?.following || 0) + (wasFollowing ? -1 : 1)),
 			},
 		}));
 
@@ -77,7 +77,7 @@ export default function PublicProfile() {
 				...prev,
 				_count: {
 					...prev._count,
-					followers: Math.max(0, (prev._count?.followers || 0) + (wasFollowing ? 1 : -1)),
+					following: Math.max(0, (prev._count?.following || 0) + (wasFollowing ? 1 : -1)),
 				},
 			}));
 		} finally {
@@ -184,7 +184,7 @@ export default function PublicProfile() {
 								className="hover:underline text-left"
 							>
 								<span className="font-bold text-gray-900 dark:text-white">
-									{profile._count?.followers || 0}
+									{profile._count?.following || 0}
 								</span>
 								<span className="text-gray-600 dark:text-gray-400 ml-1">followers</span>
 							</button>
@@ -193,7 +193,7 @@ export default function PublicProfile() {
 								className="hover:underline text-left"
 							>
 								<span className="font-bold text-gray-900 dark:text-white">
-									{profile._count?.following || 0}
+									{profile._count?.followers || 0}
 								</span>
 								<span className="text-gray-600 dark:text-gray-400 ml-1">following</span>
 							</button>

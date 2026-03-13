@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 14:07:20 by eric              #+#    #+#             */
-/*   Updated: 2026/03/12 17:45:03 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/13 11:03:31 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -168,11 +168,11 @@ export default function Profile()
                                 <span className="text-gray-600 dark:text-gray-400 ml-1">{t('profile.posts')}</span>
                             </div>
                             <Link to="/followers?tab=followers" className="hover:underline">
-                                <span className="font-bold text-gray-900 dark:text-white">{user._count?.followers || 0}</span>
+                                <span className="font-bold text-gray-900 dark:text-white">{user._count?.following || 0}</span>
                                 <span className="text-gray-600 dark:text-gray-400 ml-1">{t('profile.followers')}</span>
                             </Link>
                             <Link to="/followers?tab=following" className="hover:underline">
-                                <span className="font-bold text-gray-900 dark:text-white">{user._count?.following || 0}</span>
+                                <span className="font-bold text-gray-900 dark:text-white">{user._count?.followers || 0}</span>
                                 <span className="text-gray-600 dark:text-gray-400 ml-1">{t('profile.following')}</span>
                             </Link>
                         </div>
