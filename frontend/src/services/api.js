@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 10:35:59 by eric              #+#    #+#             */
-/*   Updated: 2026/03/13 11:39:50 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/16 16:46:40 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,6 +95,14 @@ export const authAPI = {
 		return fetchWithAuth('/auth/42/callback', {
 			method: 'POST',
 			body: JSON.stringify({ code }),
+		});
+	},
+
+	// Inscription avec 42
+	confirm42: async (data) => {
+		return fetchWithAuth('auth/42/confirm', {
+			method: 'POST',
+			body: JSON.stringify(data),
 		});
 	},
 

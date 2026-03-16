@@ -29,45 +29,45 @@ passport.use(new FortyTwoStrategy(
 				cu => cu.cursus?.slug === '42cursus' || cu.cursus?.slug === 'web3'
 			) || ftData.cursus_users?.[0];
 			
-			let user = await prisma.user.findUnique({
-				where: { ftId: ftData.id }
+			// Chercher par ftId OU intraId (compatibilité)
+			let user = await prisma.user.findFirst({
+				where: {
+					OR: [
+						{ ftId: ftData.id },
+						{ intraId: ftData.id.toString() },
+					]
+				}
 			});
 
-			const isNewUser = !user;
-
-			if (!user) {
-				user = await prisma.user.create({
-					data: {
-						ftId: ftData.id,
-						username: ftData.login,
-						email: ftData.email,
-						firstName: ftData.first_name,
-						lastName: ftData.last_name,
-						avatar: ftData.image?.link || null,
-						campus: ftData.campus?.[0]?.name || null,
-						cursus: mainCursus?.cursus?.name || null,
-						level: mainCursus?.level || 0,
-					}
-				});
-
-				// Créer une notification de bienvenue pour les nouveaux utilisateurs
-				await prisma.notification.create({
-					data: {
-						userId: user.id,
-						type: 'system',
-						content: `Bienvenue sur 42Hub, ${user.firstName} ! 🎉 Commence à partager tes projets et à connecter avec la communauté 42.`,
-						isRead: false,
-					}
-				});
-			} else {
+			if (user) {
+				// USER EXISTANT → mettre à jour level/cursus, NE PAS écraser avatar si personnalisé
 				user = await prisma.user.update({
 					where: { id: user.id },
 					data: {
-						level: mainCursus?.level || user.level,
-						avatar: ftData.image?.link || user.avatar,
+						level:  mainCursus?.level || user.level,
 						cursus: mainCursus?.cursus?.name || user.cursus,
+						// Ne pas écraser l'avatar si l'user l'a personnalisé
+						avatar: user.avatar || ftData.image?.link || null,
 					}
 				});
+				// Passer isNewUser = false pour que le callback génère un vrai JWT
+				user.isNewUser = false;
+			} else {
+				// NOUVEL USER → passer les données 42 brutes, pas encore créé en DB
+				// Le callback redirigera vers /register/42 pour confirmation
+				user = {
+					isNewUser:  true,
+					ftId:       ftData.id,
+					intraId:    ftData.id.toString(),
+					username:   ftData.login,
+					email:      ftData.email,
+					firstName:  ftData.first_name,
+					lastName:   ftData.last_name,
+					avatar:     ftData.image?.link || null,
+					campus:     ftData.campus?.[0]?.name || null,
+					cursus:     mainCursus?.cursus?.name || null,
+					level:      mainCursus?.level || 0,
+				};
 			}
 			return done(null, user);
 		} catch (error) {

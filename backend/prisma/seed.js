@@ -257,7 +257,7 @@ async function main() {
 		prisma.notification.create({
 			data: {
 				type: 'like',
-				message: 'Sophie Martin a aimé votre post',
+				content: 'Sophie Martin a aimé votre post',
 				userId: users[0].id,
 				isRead: false
 			}
@@ -265,7 +265,7 @@ async function main() {
 		prisma.notification.create({
 			data: {
 				type: 'follow',
-				message: 'Pierre Bernard a commencé à vous suivre',
+				content: 'Pierre Bernard a commencé à vous suivre',
 				userId: users[0].id,
 				isRead: false
 			}
@@ -273,7 +273,7 @@ async function main() {
 		prisma.notification.create({
 			data: {
 				type: 'message',
-				message: 'Vous avez un nouveau message de Jean Dupont',
+				content: 'Vous avez un nouveau message de Jean Dupont',
 				userId: users[1].id,
 				isRead: true
 			}
@@ -281,7 +281,7 @@ async function main() {
 		prisma.notification.create({
 			data: {
 				type: 'like',
-				message: 'Lucas Thomas a aimé votre post',
+				content: 'Lucas Thomas a aimé votre post',
 				userId: users[2].id,
 				isRead: false
 			}
@@ -289,7 +289,7 @@ async function main() {
 		prisma.notification.create({
 			data: {
 				type: 'follow',
-				message: 'Marie Garcia a commencé à vous suivre',
+				content: 'Marie Garcia a commencé à vous suivre',
 				userId: users[4].id,
 				isRead: true
 			}

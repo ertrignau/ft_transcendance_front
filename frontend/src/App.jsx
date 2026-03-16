@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/12 15:59:56 by eric              #+#    #+#             */
-/*   Updated: 2026/03/12 17:07:33 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/16 16:41:04 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@ import { AppProvider } from "./context/AppContext";
 import { MessagesProvider } from "./context/MessagesContext";
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
+import Register42 from './pages/Register/Register42';
 import Callback from "./pages/Callback";
 import Feed from "./pages/Feed/Feed";
 import Messages from "./pages/Messages/Messages";
@@ -37,6 +38,7 @@ function App()
               {/*ROUTE SANS NAVBAR */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/register/42" element={<Register42 />} />
               <Route path="/callback" element={<Callback />} />
 
               {/*ROUTE AVEC NAVBAR*/}
