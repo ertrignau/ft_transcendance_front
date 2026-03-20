@@ -15,13 +15,13 @@ import Navbar from "./Navbar";
 export default function Layout({ children })
 {
 	return (
-		<div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex transition-colors">
+		<div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col sm:flex-row transition-colors w-full overflow-x-hidden">
 			{/* Sidebar */}
 			<Navbar />
 			
-			{/* Main Content */}
-			<main className="flex-1 ml-20 p-8">
-				<div className="max-w-6xl mx-auto">
+			{/* Main Content - with top padding on mobile for navbar */}
+			<main className="flex-1 p-2 sm:p-4 md:p-8 w-full overflow-x-hidden overflow-y-auto pt-20 sm:pt-0">
+				<div className="max-w-6xl mx-auto w-full">
 					{children}
 				</div>
 			</main>

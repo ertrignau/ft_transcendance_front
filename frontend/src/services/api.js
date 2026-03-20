@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 10:35:59 by eric              #+#    #+#             */
-/*   Updated: 2026/03/20 14:51:59 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/20 15:45:51 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 // CONFIG
 // ===================================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // ===================================
 // HELPER POUR LES REQUETES AuTH

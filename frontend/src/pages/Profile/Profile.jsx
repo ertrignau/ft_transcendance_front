@@ -117,52 +117,52 @@ export default function Profile()
  return (
         <div className="max-w-4xl mx-auto">
             {/* En-tête du profil */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6 transition-colors">
-                <div className="flex items-start space-x-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 mb-6 transition-colors">
+                <div className="flex flex-col md:flex-row md:items-start md:space-x-6 space-y-4 md:space-y-0">
                     {/* Avatar */}
-                    <div className="group">
+                    <div className="group flex-shrink-0">
                         <div className="relative">
                             <img
                                 src={user.avatar}
                                 alt={user.username}
-                                className="w-32 h-32 rounded-full border-4 border-blue-500"
+                                className="w-24 sm:w-32 h-24 sm:h-32 rounded-full border-4 border-blue-500"
                             />
                             <button
                                 onClick={() => setShowAvatarModal(true)}
-                                className="absolute inset-0 w-32 h-32 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all"
+                                className="absolute inset-0 w-24 sm:w-32 h-24 sm:h-32 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all"
                             >
-                                <FiCamera className="text-white opacity-0 group-hover:opacity-100 text-3xl" />
+                                <FiCamera className="text-white opacity-0 group-hover:opacity-100 text-2xl sm:text-3xl" />
                             </button>
                         </div>
                     </div>
 
                     {/* Infos utilisateur */}
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    <div className="flex-1 w-full">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                            <div className="flex-1">
+                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white break-words">
                                     {user.firstName} {user.lastName}
                                 </h1>
-                                <p className="text-gray-600 dark:text-gray-400">@{user.username}</p>
+                                <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">@{user.username}</p>
                             </div>
                             <Link
                                 to="/settings"
-                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                                className="bg-blue-500 text-white px-3 sm:px-4 py-2 rounded hover:bg-blue-700 transition text-sm sm:text-base whitespace-nowrap flex-shrink-0"
                             >
                                 ⚙️ {t('profile.edit')}
                             </Link>
                         </div>
-                        {user.bio && <p className="text-gray-700 dark:text-gray-300 mb-4">{user.bio}</p>}
+                        {user.bio && <p className="text-gray-700 dark:text-gray-300 mb-4 text-sm sm:text-base">{user.bio}</p>}
 
                         {/* Informations 42 */}
-                        <div className="flex space-x-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            {user.campus && <span>📍 {user.campus}</span>}
+                        <div className="flex flex-wrap gap-3 sm:gap-6 text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            {user.campus && <span className="break-words">📍 {user.campus}</span>}
                             {user.level && <span>🎯 Niveau {user.level}</span>}
-                            {user.cursus && <span>📚 {user.cursus}</span>}
+                            {user.cursus && <span className="break-words">📚 {user.cursus}</span>}
                         </div>
 
                         {/* Statistiques */}
-                        <div className="flex space-x-6">
+                        <div className="flex flex-wrap gap-4 sm:gap-6 text-sm sm:text-base">
                             <div>
                                 <span className="font-bold text-gray-900 dark:text-white">{userPosts.length}</span>
                                 <span className="text-gray-600 dark:text-gray-400 ml-1">{t('profile.posts')}</span>
