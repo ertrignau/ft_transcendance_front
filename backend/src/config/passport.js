@@ -55,7 +55,7 @@ passport.use(new FortyTwoStrategy(
 						cursus: mainCursus?.cursus?.name || user.cursus,
 						campus: campus || user.campus,
 						// Ne pas écraser l'avatar si l'user l'a personnalisé
-						avatar: user.avatar || ftData.image?.link || null,
+				avatar: user.avatar || ftData.image?.versions?.medium || ftData.image?.link || null,
 					}
 				});
 				// Passer isNewUser = false pour que le callback génère un vrai JWT
@@ -80,7 +80,7 @@ passport.use(new FortyTwoStrategy(
 					email:      ftData.email,
 					firstName:  ftData.first_name,
 					lastName:   ftData.last_name,
-					avatar:     ftData.image?.link || null,
+					avatar:     ftData.image?.versions?.medium || ftData.image?.link || null,
 					campus:     campus,
 					cursus:     mainCursus?.cursus?.name || null,
 					level:      mainCursus?.level || 0,

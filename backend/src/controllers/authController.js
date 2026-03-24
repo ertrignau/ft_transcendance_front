@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/15 12:33:49 by eric              #+#    #+#             */
-/*   Updated: 2026/03/19 13:50:18 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/24 13:28:48 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,18 +31,15 @@ export const generateToken = (user) => {
 // ===================================
 export const login = async (req, res) => {
     try {
-        const { login, password } = req.body;
+        const { email, password } = req.body;
 
-        if (!login || !password)
-            return res.status(400).json({ error: 'Login et mot de passe requis' });
+        if (!email || !password)
+            return res.status(400).json({ error: 'Email et mot de passe requis' });
 
-        // Chercher par username OU email
+        // Chercher par email
         const user = await prisma.user.findFirst({
             where: {
-                OR: [
-                    { username: login },
-                    { email: login },
-                ]
+                email: email
             }
         });
 
@@ -131,24 +128,24 @@ export const handleOAuthCallback = (req, res) => {
         }
 
         // NOUVEL USER → rediriger vers le formulaire de confirmation
+        // ⚠️ Encoder TOUTES les données API 42 dans le JWT (pas de base64 exposé en URL)
         const tempToken = jwt.sign(
-            { intraId: user.intraId || user.ftId.toString() },
+            {
+                intraId:   user.intraId || user.ftId.toString(),
+                username:  user.username,
+                email:     user.email,
+                firstName: user.firstName,
+                lastName:  user.lastName,
+                avatar:    user.avatar,
+                campus:    user.campus,
+                cursus:    user.cursus,
+                level:     user.level,
+            },
             process.env.JWT_SECRET,
             { expiresIn: '10m' }
         );
 
-        const data = Buffer.from(JSON.stringify({
-            username:  user.username,
-            email:     user.email,
-            firstName: user.firstName,
-            lastName:  user.lastName,
-            avatar:    user.avatar,
-            campus:    user.campus,
-            cursus:    user.cursus,
-            level:     user.level,
-        })).toString('base64');
-
-        res.redirect(`${process.env.FRONTEND_URL}/register/42?tempToken=${tempToken}&data=${data}`);
+        res.redirect(`${process.env.FRONTEND_URL}/register/42?tempToken=${tempToken}`);
     } catch (error) {
         console.error('Erreur callback OAuth:', error);
         res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
@@ -160,12 +157,14 @@ export const handleOAuthCallback = (req, res) => {
 // ===================================
 export const confirmRegister42 = async (req, res) => {
     try {
-        const { username, email, firstName, lastName, avatar, tempToken, campus, cursus, level } = req.body;
+        // ⚠️ N'accepter que password et confirmPassword du frontend
+        // Les données API 42 viennent UNIQUEMENT du token
+        const { password, confirmPassword, tempToken } = req.body;
 
         if (!tempToken)
             return res.status(401).json({ error: 'Token manquant' });
 
-        // Vérifier le tempToken
+        // Vérifier et décoder le tempToken
         let decoded;
         try {
             decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
@@ -173,8 +172,16 @@ export const confirmRegister42 = async (req, res) => {
             return res.status(401).json({ error: 'Token invalide ou expiré' });
         }
 
-        if (!decoded.intraId)
-            return res.status(401).json({ error: 'Token invalide' });
+        // Valider que tous les champs API 42 sont présents dans le token
+        const { intraId, username, email, firstName, lastName, avatar, campus, cursus, level } = decoded;
+        if (!intraId || !username || !email || !firstName || !lastName)
+            return res.status(401).json({ error: 'Token invalide - données manquantes' });
+
+        // Valider le mot de passe du frontend
+        if (!password || password.length < 6)
+            return res.status(400).json({ error: 'Mot de passe: minimum 6 caractères' });
+        if (password !== confirmPassword)
+            return res.status(400).json({ error: 'Les mots de passe ne correspondent pas' });
 
         // Vérifier si username ou email déjà pris
         const existing = await prisma.user.findFirst({
@@ -191,16 +198,19 @@ export const confirmRegister42 = async (req, res) => {
         if (existing?.email === email)
             return res.status(409).json({ error: 'Cet email est déjà utilisé' });
 
-        // Créer l'user en DB
+        // Hasher le mot de passe
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Créer l'user en DB avec les données du token (pas du frontend!)
         const user = await prisma.user.create({
             data: {
-                username,
-                email,
-                firstName,
-                lastName,
+                username,          // Du token (API 42)
+                email,             // Du token (API 42)
+                firstName,         // Du token (API 42)
+                lastName,          // Du token (API 42)
                 avatar:    avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName)}&background=3b82f6&color=fff`,
-                intraId:   decoded.intraId.toString(),
-                password:  null,
+                intraId:   intraId.toString(),
+                password:  hashedPassword,  // Du frontend, hashé
                 campus:    campus || null,
                 cursus:    cursus || null,
                 level:     level || 0,
@@ -237,6 +247,7 @@ export const getMe = async (req, res) => {
                 level:     true,
                 intraId:   true,
                 createdAt: true,
+                theme:     true,
                 _count: {
                     select: {
                         posts:     true,

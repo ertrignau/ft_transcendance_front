@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 16:21:25 by eric              #+#    #+#             */
-/*   Updated: 2026/03/24 11:26:33 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/24 14:15:22 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@ import { Button } from "../utils";
 import { FiHeart, FiMessageCircle, FiShare2, FiTrash2, FiMoreVertical, FiEdit2 } from "react-icons/fi";
 import CommentSection from "./CommentSection";
 import { useAppContext } from "../context/AppContext";
+import { useAvatar } from "../hooks/useAvatar";
 import { postsAPI } from "../services/api";
 
 export default function PostCard({ post, onLike, onDelete })
@@ -28,6 +29,10 @@ export default function PostCard({ post, onLike, onDelete })
 	const [editContent, setEditContent] = useState(post.content);
 	const [isSaving, setIsSaving] = useState(false);
 	const { user } = useAppContext();
+
+	// Vérifier si c'est un filename local (pas http/data)
+	const isLocalAvatar = post.avatar && !post.avatar.startsWith('http') && !post.avatar.startsWith('data:');
+	const { imageUrl: avatarUrl } = useAvatar(isLocalAvatar ? post.avatar : null);
 
 	const isOwner = user?.id === post.userId;
 
@@ -65,7 +70,7 @@ export default function PostCard({ post, onLike, onDelete })
 					<div className="flex items-center space-x-3">
 						<Link to={`/profile/${post.author}`}>
 							<img
-								src={post.avatar || `https://ui-avatars.com/api/?name=${post.author || 'User'}&background=3b82f6&color=fff`}
+								src={avatarUrl || post.avatar || `https://ui-avatars.com/api/?name=${post.author || 'User'}&background=3b82f6&color=fff`}
 								alt={post.author}
 								className="w-12 h-12 rounded-full hover:ring-2 hover:ring-blue-500 transition object-cover"
 							/>

@@ -20,6 +20,7 @@ model User {
 	lastName	String?
 	avatar		String?
 	bio			String?	@db.Text
+	theme		String?	@default("light")
 
 	intraId		String?	@unique
 	ftId		Int?	@unique

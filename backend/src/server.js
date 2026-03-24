@@ -12,6 +12,7 @@ import messageRoutes from './routes/messages.js';
 import notificationRoutes from './routes/notifications.js';
 import commentRoutes from './routes/comments.js';
 import searchRoutes from './routes/search.js';
+import uploadRoutes from './routes/uploads.js';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -51,6 +52,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // Démarrage du serveur
 app.listen(PORT, () => {

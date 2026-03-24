@@ -6,13 +6,14 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/12 16:02:01 by eric              #+#    #+#             */
-/*   Updated: 2026/03/13 11:03:32 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/24 14:15:22 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import { useAvatar } from '../../hooks/useAvatar';
 import { profileAPI, followersAPI } from '../../services/api';
 import PostCard from '../../components/PostCard';
 import { FiX } from 'react-icons/fi';
@@ -30,6 +31,10 @@ export default function PublicProfile() {
 	const [modal, setModal] = useState(null); // null | 'followers' | 'following'
 	const [modalList, setModalList] = useState([]);
 	const [modalLoading, setModalLoading] = useState(false);
+	
+	// Hook pour charger l'avatar avec JWT - seulement si c'est un filename local
+	const isLocalProfileAvatar = profile?.avatar && !profile.avatar.startsWith('http') && !profile.avatar.startsWith('data:');
+	const { imageUrl: profileAvatarUrl } = useAvatar(isLocalProfileAvatar ? profile?.avatar : null);
 
 	useEffect(() => {
 		const loadProfile = async () => {
@@ -124,7 +129,7 @@ export default function PublicProfile() {
 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
 				<div className="flex items-start space-x-6">
 					<img
-						src={profile.avatar || `https://ui-avatars.com/api/?name=${profile.firstName || profile.username}&background=3b82f6&color=fff`}
+						src={profileAvatarUrl || profile.avatar || `https://ui-avatars.com/api/?name=${profile.firstName || profile.username}&background=3b82f6&color=fff`}
 						alt={profile.username}
 						className="w-32 h-32 rounded-full border-4 border-blue-500 object-cover flex-shrink-0"
 					/>

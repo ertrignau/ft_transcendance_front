@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 10:35:59 by eric              #+#    #+#             */
-/*   Updated: 2026/03/23 16:11:40 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/24 14:15:22 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,9 @@ const fetchWithAuth = async (endpoint, options = {}) => {
 			detail: 'Une erreur est survenue'
 		}));
 		console.error('❌ Erreur API:', error);
-		throw new Error(error.detail || error.message || error.error || 'Erreur réseau');
+		const err = new Error(error.detail || error.message || error.error || 'Erreur réseau');
+		err.status = response.status;
+		throw err;
 	}
 
 	return response.json();
@@ -80,11 +82,11 @@ const fetchWithAuth = async (endpoint, options = {}) => {
 // ===================================
 
 export const authAPI = {
-	// Connexion classique -> (login + password)
-	login: async (login, password) => {
+	// Connexion classique -> (email + password)
+	login: async (email, password) => {
 		return fetchWithAuth('/auth/login', {
 			method: 'POST',
-			body: JSON.stringify({ login, password }),
+			body: JSON.stringify({ email, password }),
 		});
 	},
 
@@ -457,6 +459,62 @@ export const searchAPI = {
 	},
 };
 
+// ===================================
+// API UPLOADS
+// ===================================
+export const uploadAPI = {
+	// Upload un avatar (en base64)
+	uploadAvatar: async (avatarBase64) => {
+		return fetchWithAuth('/uploads/avatar', {
+			method: 'POST',
+			body: JSON.stringify({ avatarData: avatarBase64 }),
+		});
+	},
+
+	// Récupère une image avec JWT (retourne blob)
+	getImage: async (filename) => {
+		if (!filename) {
+			throw new Error('Nom de fichier manquant');
+		}
+
+		const token = localStorage.getItem('access_token');
+		if (!token) {
+			throw new Error('Token JWT manquant');
+		}
+
+		const url = `${API_BASE_URL}/uploads/avatars/${filename}`;
+		console.log('📥 Récupération image:', url);
+
+		const response = await fetch(url, {
+			headers: {
+				'Authorization': `Bearer ${token}`,
+			},
+		});
+
+		console.log('📊 Status réponse:', response.status);
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error('❌ Erreur serveur:', response.status, errorText);
+			throw new Error(`Impossible de télécharger l'image (${response.status}): ${errorText}`);
+		}
+
+		return response.blob();
+	},
+
+	// Retourne l'URL blob-ifiée d'une image (pour utiliser comme src)
+	getImageUrl: async (filename) => {
+		if (!filename) return null;
+		try {
+			const blob = await uploadAPI.getImage(filename);
+			return URL.createObjectURL(blob);
+		} catch (error) {
+			console.error('Erreur récupération image:', error);
+			return null;
+		}
+	},
+};
+
 export default {
 	auth: authAPI,
 	profile: profileAPI,
@@ -466,5 +524,6 @@ export default {
 	messages: messagesAPI,
 	comments: commentsAPI,
 	search: searchAPI,
+	uploads: uploadAPI,
 	users: usersAPI,
 };

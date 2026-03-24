@@ -6,24 +6,33 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 13:17:00 by eric              #+#    #+#             */
-/*   Updated: 2026/03/19 11:23:15 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/24 13:28:48 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Input, Button } from "../../utils";
 import { authAPI } from "../../services/api";
 import { useAppContext } from "../../context/AppContext";
 
 export default function Login() 
 {
-	const [login, setLogin] = useState("");
+	const [login, setLogin] = useState(""); // Peut être un email ou username
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
 	const navigate = useNavigate();
-	const { setUser } = useAppContext();
+	const { setUser, setTheme } = useAppContext();
+	const [searchParams] = useSearchParams();
+
+	// Vérifier le paramètre d'erreur depuis OAuth 42
+	useEffect(() => {
+		const errorParam = searchParams.get('error');
+		if (errorParam === 'login_cancelled') {
+			setError('Connexion annulée. Veuillez réessayer.');
+		}
+	}, [searchParams]);
 
 	const handleSubmit = async (e) => 
 	{
@@ -43,6 +52,11 @@ export default function Login()
 			// Charger et stocker l'utilisateur dans le contexte
 			const userData = await authAPI.getCurrentUser();
 			setUser(userData);
+			
+			// Appliquer le theme du user
+			if (userData.theme) {
+				setTheme(userData.theme);
+			}
 
 			// Rediriger vers le feed
 			navigate('/feed');

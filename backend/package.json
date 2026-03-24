@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "test:ftp": "node testFtp.js",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
@@ -25,6 +26,7 @@
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.5",
+    "basic-ftp": "^5.0.5",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

@@ -6,19 +6,19 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/16 16:12:07 by eric              #+#    #+#             */
-/*   Updated: 2026/03/19 13:50:18 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/24 14:15:22 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppContext  } from "../../context/AppContext";
-import { authAPI } from "../../services/api"
+import { authAPI, uploadAPI } from "../../services/api"
 
 export default function Register42() {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
-	const { login } = useAppContext();
+	const { login, setTheme } = useAppContext();
 	
 	const [form, setForm] = useState({
 		username:	"",
@@ -37,52 +37,51 @@ export default function Register42() {
 	const [loading, setLoading] = useState(false);
 	const [tempToken, setTempToken] = useState(null);
 
-	// Au chargement, on recupere les donnees 42 et ont pre-remplies
+	// Au chargement, on decodes le JWT tempToken pour récupérer les données API 42
 	useEffect(() => {
-		const data 		= searchParams.get("data");
-		const token		= searchParams.get("tempToken");
+		const token = searchParams.get("tempToken");
 
-		if (!data || !token) {
+		if (!token) {
 			navigate("/login");
 			return;
 		}
 
 		try {
-			const parsed = JSON.parse(atob(data));
+			// Décoder le JWT (sans vérifier la signature, juste pour lire les données)
+			const parts = token.split('.');
+			if (parts.length !== 3) throw new Error('Invalid JWT');
+			
+			const decoded = JSON.parse(atob(parts[1]));
+			const { username, email, firstName, lastName, avatar, campus, cursus, level, intraId } = decoded;
+			
+			if (!username || !email || !firstName || !lastName || !intraId)
+				throw new Error('Missing required data in token');
+			
 			setForm({
-				username:	parsed.username 	|| "",
-				email:		parsed.email 		|| "",
-				firstName:	parsed.firstName	|| "",
-				lastName:	parsed.lastName		|| "",
-				avatar:		parsed.avatar		|| "",
+				username:	username || "",
+				email:		email || "",
+				firstName:	firstName || "",
+				lastName:	lastName || "",
+				avatar:		avatar || "",
 				password:	"",
 				confirmPassword: "",
-				campus:		parsed.campus 		|| "",
-				cursus:		parsed.cursus 		|| "",
-				level:		parsed.level 		|| 0,
+				campus:		campus || "",
+				cursus:		cursus || "",
+				level:		level || 0,
 			});
 			setTempToken(token);
-		} catch {
+		} catch (err) {
+			console.error('Erreur décodage token:', err);
 			navigate("/login");
 		}
-	}, []);
+	}, [searchParams, navigate]);
 
 	const validate = () => {
 		const newErrors = {};
 		
-		if (!form.username || form.username.length < 3 || form.username.length > 20)
-			newErrors.username = "3 à 20 caractères requis";
-		if (!/^[a-zA-Z0-9_-]+$/.test(form.username))	
-			newErrors.username = "Uniquement lettres, chiffres, _ et -";
-		if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-			newErrors.email = "Email invalide";
-		if (!form.firstName)
-			newErrors.firstName = "Prénom requis";
-		if (!form.lastName)
-			newErrors.lastName = "Nom requis";
-		if (!form.password || form.password.length < 6)
-			newErrors.password = "Minimum 6 caractères requis";
-		if (form.password !== form.confirmPassword)
+					// Les champs de l'API 42 ne nécessitent pas de validation
+					// (ils sont verrouillés et ne peuvent pas être modifiés)
+					
 			newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
 		
 		setErrors(newErrors);
@@ -95,13 +94,41 @@ export default function Register42() {
 		
 		setLoading(true);
 		try {
+			// ⚠️ Envoyer ONLY password et confirmPassword (les données API 42 viennent du backend)
 			const response = await authAPI.confirm42({
-				...form,
+				password: form.password,
+				confirmPassword: form.confirmPassword,
 				tempToken,
 			});
 			login(response.user, response.token);
+			
+			// Appliquer le theme du user
+			if (response.user.theme) {
+				setTheme(response.user.theme);
+			}
+			
+			// Upload avatar custom si l'utilisateur en a changé
+			if (form.avatar && form.avatar.startsWith('data:image/')) {
+				try {
+					await uploadAPI.uploadAvatar(form.avatar);
+					console.log('✅ Avatar uploadé avec succès');
+				} catch (uploadErr) {
+					console.error('❌ Erreur upload avatar:', uploadErr);
+					// On continue quand même vers le feed même si l'upload échoue
+					setErrors({ global: 'Avatar non uploadé mais compte créé: ' + uploadErr.message });
+					// Continuer après 2 secondes
+					setTimeout(() => navigate("/feed"), 2000);
+					return;
+				}
+			}
+			
 			navigate("/feed");
 		} catch (err) {
+			// Si compte déjà existant → rediriger vers login
+			if (err.status === 409) {
+				navigate("/login?error=account_exists");
+				return;
+			}
 			setErrors({ global: err.message });
 		} finally {
 			setLoading(false);
@@ -130,8 +157,8 @@ export default function Register42() {
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                             Finaliser mon inscription
                         </h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Vérifie et modifie tes informations si besoin
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Les données 42 sont verrouillées. Définis ton mot de passe pour continuer.
                         </p>
                     </div>
                 </div>
@@ -165,75 +192,55 @@ export default function Register42() {
 
 				<form onSubmit={handleSubmit} className="space-y-4">
 
-                    {/* Username */}
+                    {/* Username (API 42 - Disabled) */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Nom d'utilisateur
+                        <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                            Nom d'utilisateur (42)
                         </label>
                         <input
                             type="text"
                             value={form.username}
-                            onChange={(e) => setForm({ ...form, username: e.target.value })}
-                            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-                                errors.username ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                            }`}
+                            disabled={true}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 cursor-not-allowed opacity-60"
                         />
-                        {errors.username && (
-                            <p className="text-red-500 text-xs mt-1">{errors.username}</p>
-                        )}
                     </div>
 					
-					{/* Email */}
+					{/* Email (API 42 - Disabled) */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Email
+                        <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                            Email (42)
                         </label>
                         <input
                             type="email"
                             value={form.email}
-                            onChange={(e) => setForm({ ...form, email: e.target.value })}
-                            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-                                errors.email ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                            }`}
+                            disabled={true}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 cursor-not-allowed opacity-60"
                         />
-                        {errors.email && (
-                            <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                        )}
                     </div>
 					
-					{/* Prénom / Nom */}
+{/* Prénom / Nom (API 42 - Disabled) */}
                     <div className="flex gap-3">
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Prénom
+                            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                Prénom (42)
                             </label>
                             <input
                                 type="text"
                                 value={form.firstName}
-                                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-								className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-                                    errors.firstName ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                                }`}
+                                disabled={true}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 cursor-not-allowed opacity-60"
                             />
-                            {errors.firstName && (
-                                <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
-                            )}
                         </div>
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Nom
+                            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                Nom (42)
                             </label>
                             <input
                                 type="text"
                                 value={form.lastName}
-                                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-                                    errors.lastName ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                                }`}
+                                disabled={true}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 cursor-not-allowed opacity-60"
                             />
-                            {errors.lastName && (
-                                <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
-                            )}
                         </div>
 					</div>
 

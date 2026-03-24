@@ -6,14 +6,15 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 14:07:20 by eric              #+#    #+#             */
-/*   Updated: 2026/03/23 11:47:28 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/24 14:15:22 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../context/AppContext";
-import { authAPI, profileAPI } from "../../services/api";
+import { authAPI, uploadAPI } from "../../services/api";
+import { useAvatar } from "../../hooks/useAvatar";
 import PostCard from "../../components/PostCard";
 import CreatePostForm from "../../components/CreatePostForm";
 import FloatingChat from "../../components/FloatingChat";
@@ -35,6 +36,10 @@ export default function Profile()
     const [uploadError, setUploadError] = useState(null);
     
     const { user, setUser, posts, addPost, toggleLike, deletePost } = useAppContext();
+    
+    // Hook pour charger l'avatar avec JWT - seulement si c'est un filename local
+    const isLocalAvatar = user?.avatar && !user.avatar.startsWith('http') && !user.avatar.startsWith('data:');
+    const { imageUrl: avatarUrl } = useAvatar(isLocalAvatar ? user?.avatar : null);
     
     // Filtrer les posts de l'utilisateur connecté
     const userPosts = posts.filter(post => post.userId === user?.id);
@@ -87,20 +92,32 @@ export default function Profile()
         setUploadError(null);
 
         try {
-            // Appel API pour upload avatar
-            const response = await profileAPI.uploadAvatar(selectedFile);
-            
-            // Mettre à jour l'avatar de l'utilisateur
-            setUser({ ...user, avatar: response.avatarUrl || response.avatar });
-            
-            // Fermer le modal et réinitialiser
-            setShowAvatarModal(false);
-            setSelectedFile(null);
-            
+            // Convertir le fichier en base64
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const base64Data = e.target.result;
+                    
+                    // Uploader via API (retourne juste le nom du fichier)
+                    const response = await uploadAPI.uploadAvatar(base64Data);
+                    
+                    // Mettre à jour l'avatar de l'utilisateur avec le nom du fichier
+                    setUser({ ...user, avatar: response.avatar });
+                    
+                    // Fermer le modal et réinitialiser
+                    setShowAvatarModal(false);
+                    setSelectedFile(null);
+                } catch (err) {
+                    console.error('Erreur upload avatar:', err);
+                    setUploadError(err.message || t('profile.uploadError'));
+                } finally {
+                    setUploading(false);
+                }
+            };
+            reader.readAsDataURL(selectedFile);
         } catch (err) {
-            console.error('Erreur upload avatar:', err);
+            console.error('Erreur conversion fichier:', err);
             setUploadError(t('profile.uploadError'));
-        } finally {
             setUploading(false);
         }
     };
@@ -123,7 +140,7 @@ export default function Profile()
                     <div className="group flex-shrink-0">
                         <div className="relative">
                             <img
-                                src={user.avatar}
+                                src={avatarUrl || user.avatar || `https://ui-avatars.com/api/?name=${user.firstName || user.username}&background=3b82f6&color=fff`}
                                 alt={user.username}
                                 className="w-24 sm:w-32 h-24 sm:h-32 rounded-full border-4 border-blue-500"
                             />

@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 13:11:40 by eric              #+#    #+#             */
-/*   Updated: 2026/03/23 16:13:20 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/24 13:28:48 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input, Button } from "../../utils/index";
 import { authAPI } from "../../services/api";
+import { useAppContext } from "../../context/AppContext";
 
 export default function Register()
 {
@@ -25,6 +26,7 @@ export default function Register()
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
 	const navigate = useNavigate();
+	const { setUser, setTheme } = useAppContext();
 
 	const handleSubmit = async (e) =>
 	{
@@ -53,9 +55,14 @@ export default function Register()
 			});
 
 			// Stocker les tokens
-			localStorage.setItem('access_token', response.access_token);
-			if (response.refresh_token) {
-				localStorage.setItem('refresh_token', response.refresh_token);
+			localStorage.setItem('access_token', response.token);
+
+			// Stocker l'utilisateur dans le contexte
+			setUser(response.user);
+			
+			// Appliquer le theme du user (défault: light)
+			if (response.user.theme) {
+				setTheme(response.user.theme);
 			}
 
 			// Rediriger vers le feed

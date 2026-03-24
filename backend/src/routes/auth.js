@@ -25,7 +25,7 @@ router.get('/42', passport.authenticate('42'));
 // GET /api/auth/42/callback -> callback OAuth 42
 router.get('/42/callback', 
 passport.authenticate('42', {
-failureRedirect: process.env.FRONTEND_URL + '/login?error=auth_failed',
+failureRedirect: process.env.FRONTEND_URL + '/?error=login_cancelled',
 session: false
 }),
 handleOAuthCallback
