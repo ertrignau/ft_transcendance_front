@@ -191,7 +191,20 @@
     "typeToSearch": "Digite para pesquisar usuários 42...",
     "pressEsc": "ESC para fechar",
     "level": "Nível",
-    "errorSearching": "Erro ao pesquisar"
+    "errorSearching": "Erro ao pesquisar",
+    "load_more": "Carregar mais",
+    "filter": {
+      "all": "Todos",
+      "local": "42Hub",
+      "intra": "Intra 42"
+    },
+    "sort": {
+      "by_name": "Por nome",
+      "by_level": "Por nível",
+      "by_campus": "Por campus",
+      "ascending": "Crescente",
+      "descending": "Decrescente"
+    }
   },
   "terms": {
     "title": "Termos de Serviço",

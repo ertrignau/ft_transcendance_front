@@ -193,7 +193,21 @@
     "typeToSearch": "اكتب للبحث عن مستخدمي 42...",
     "pressEsc": "اضغط ESC للإغلاق",
     "level": "المستوى",
-    "errorSearching": "خطأ في البحث"  },
+    "errorSearching": "خطأ في البحث",
+    "load_more": "تحميل المزيد",
+    "filter": {
+      "all": "الكل",
+      "local": "42Hub",
+      "intra": "Intra 42"
+    },
+    "sort": {
+      "by_name": "حسب الاسم",
+      "by_level": "حسب المستوى",
+      "by_campus": "حسب الحرم الجامعي",
+      "ascending": "تصاعدي",
+      "descending": "تنازلي"
+    }
+  },
   "terms": {
     "title": "شروط الخدمة",
     "lastUpdated": "آخر تحديث: 23 مارس 2026",

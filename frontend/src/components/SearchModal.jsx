@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { FiSearch, FiX, FiLoader } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { searchAPI } from "../services/api";
+import SearchFilter from "./SearchFilter";
+import SearchSort from "./SearchSort";
 
 export default function SearchModal({ isOpen, onClose }) {
 	const { t } = useTranslation();
@@ -11,6 +13,42 @@ export default function SearchModal({ isOpen, onClose }) {
 	const [intraUsers, setIntraUsers] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
+	const [filter, setFilter] = useState("all"); // "all", "local", "intra"
+	const [sortBy, setSortBy] = useState("name"); // "name", "level", "campus"
+	const [sortOrder, setSortOrder] = useState("asc"); // "asc", "desc"
+	const [displayLimit, setDisplayLimit] = useState(10); // Pagination limit
+
+	// Fonction pour trier les utilisateurs
+	const sortUsers = (users, sortKey, order) => {
+		const sorted = [...users].sort((a, b) => {
+			let aVal, bVal;
+
+			if (sortKey === "level") {
+				aVal = a.level || 0;
+				bVal = b.level || 0;
+			} else if (sortKey === "campus") {
+				aVal = (a.campus || "").toLowerCase();
+				bVal = (b.campus || "").toLowerCase();
+			} else {
+				// Par défaut, tri par nom
+				const aName = a.firstName && a.lastName 
+					? `${a.firstName} ${a.lastName}`.toLowerCase()
+					: (a.displayName || a.login || "").toLowerCase();
+				const bName = b.firstName && b.lastName 
+					? `${b.firstName} ${b.lastName}`.toLowerCase()
+					: (b.displayName || b.login || "").toLowerCase();
+				aVal = aName;
+				bVal = bName;
+			}
+
+			// Comparaison
+			if (aVal < bVal) return order === "asc" ? -1 : 1;
+			if (aVal > bVal) return order === "asc" ? 1 : -1;
+			return 0;
+		});
+
+		return sorted.slice(0, displayLimit);
+	};
 
 	useEffect(() => {
 		if (query.trim() === '') {
@@ -24,20 +62,39 @@ export default function SearchModal({ isOpen, onClose }) {
 			setLoading(true);
 			setError(null);
 			try {
-				// Recherche en parallèle : BDD locale + intra 42
-				const [localRes, intraRes] = await Promise.allSettled([
-					searchAPI.searchLocalUsers(query),
-					searchAPI.search42Users(query),
-				]);
+				const promises = [];
+				
+				// Rechercher dans la BDD locale si filter est "all" ou "local"
+				if (filter === "all" || filter === "local") {
+					promises.push(searchAPI.searchLocalUsers(query));
+				}
+				
+				// Rechercher dans l'Intra 42 si filter est "all" ou "intra"
+				if (filter === "all" || filter === "intra") {
+					promises.push(searchAPI.search42Users(query));
+				}
 
-				const local = localRes.status === 'fulfilled' ? (localRes.value.users || []) : [];
-				const intra = intraRes.status === 'fulfilled' ? (intraRes.value.users || []) : [];
+				const results = await Promise.allSettled(promises);
+				
+				// Traiter les résultats selon le filtre
+				let localData = [];
+				let intraData = [];
+				
+				if (filter === "all" || filter === "local") {
+					const localRes = results[0];
+					localData = localRes.status === 'fulfilled' ? (localRes.value.users || []) : [];
+				}
+				
+				if (filter === "all" || filter === "intra") {
+					const intraRes = filter === "all" ? results[1] : results[0];
+					intraData = intraRes.status === 'fulfilled' ? (intraRes.value.users || []) : [];
+				}
 
-				setLocalUsers(local);
+				setLocalUsers(localData);
 
 				// Exclure de l'intra les users déjà dans la BDD locale (même username/login)
-				const localUsernames = new Set(local.map(u => u.username.toLowerCase()));
-				setIntraUsers(intra.filter(u => !localUsernames.has(u.login.toLowerCase())));
+				const localUsernames = new Set(localData.map(u => u.username.toLowerCase()));
+				setIntraUsers(intraData.filter(u => !localUsernames.has(u.login.toLowerCase())));
 			} catch (err) {
 				setError(t('search.errorSearching'));
 			} finally {
@@ -47,7 +104,7 @@ export default function SearchModal({ isOpen, onClose }) {
 
 		const timeoutId = setTimeout(searchUsers, 500);
 		return () => clearTimeout(timeoutId);
-	}, [query]);
+	}, [query, filter]);
 
 	// Fermer avec ESC
 	useEffect(() => {
@@ -78,24 +135,33 @@ export default function SearchModal({ isOpen, onClose }) {
 				onClick={(e) => e.stopPropagation()}
 			>
 				{/* HEADER */}
-				<div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
-					<FiSearch className="text-gray-400 dark:text-gray-500 text-xl flex-shrink-0" />
-					<input
-						type="text"
-						value={query}
-						onChange={(e) => setQuery(e.target.value)}
-						placeholder={t('search.placeholder')}
-						className="flex-1 outline-none text-lg bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-						autoFocus
-					/>
-					{query && (
-						<button onClick={() => setQuery("")} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-							<FiX className="text-xl" />
+				<div className="flex flex-col gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
+					{/* Search Input */}
+					<div className="flex items-center gap-3">
+						<FiSearch className="text-gray-400 dark:text-gray-500 text-xl flex-shrink-0" />
+						<input
+							type="text"
+							value={query}
+							onChange={(e) => setQuery(e.target.value)}
+							placeholder={t('search.placeholder')}
+							className="flex-1 outline-none text-lg bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+							autoFocus
+						/>
+						{query && (
+							<button onClick={() => setQuery("")} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+								<FiX className="text-xl" />
+							</button>
+						)}
+						<button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+							<FiX className="text-2xl" />
 						</button>
-					)}
-					<button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-						<FiX className="text-2xl" />
-					</button>
+					</div>
+
+					{/* Filter Component */}
+					<SearchFilter filter={filter} setFilter={setFilter} />
+
+					{/* Sort Component */}
+					<SearchSort sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
 				</div>
 
 				{/* RESULTS */}
@@ -111,12 +177,12 @@ export default function SearchModal({ isOpen, onClose }) {
 						totalResults > 0 ? (
 							<div className="py-2">
 								{/* Utilisateurs inscrits sur 42Hub */}
-								{localUsers.length > 0 && (
+								{localUsers.length > 0 && (filter === "all" || filter === "local") && (
 									<>
 										<p className="px-4 py-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
 											Sur 42Hub
 										</p>
-										{localUsers.map((user) => (
+										{sortUsers(localUsers, sortBy, sortOrder).map((user) => (
 											<Link
 												key={user.id}
 												to={`/profile/${user.username}`}
@@ -151,12 +217,12 @@ export default function SearchModal({ isOpen, onClose }) {
 								)}
 
 								{/* Utilisateurs intra 42 non inscrits */}
-								{intraUsers.length > 0 && (
+								{intraUsers.length > 0 && (filter === "all" || filter === "intra") && (
 									<>
 										<p className="px-4 py-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-t dark:border-gray-700 mt-2 pt-3">
 											Intra 42
 										</p>
-										{intraUsers.map((user) => (
+										{sortUsers(intraUsers, sortBy, sortOrder).map((user) => (
 											<div
 												key={user.id}
 												className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition opacity-70"
@@ -184,6 +250,18 @@ export default function SearchModal({ isOpen, onClose }) {
 											</div>
 										))}
 									</>
+								)}
+
+								{/* Load More Button */}
+								{displayLimit < totalResults && (
+									<div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+										<button
+											onClick={() => setDisplayLimit(displayLimit + 10)}
+											className="w-full py-2 text-center text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition font-medium text-sm"
+										>
+											{t('search.load_more')} ({displayLimit}/{totalResults})
+										</button>
+									</div>
 								)}
 							</div>
 						) : (

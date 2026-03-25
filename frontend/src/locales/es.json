@@ -191,7 +191,20 @@
     "typeToSearch": "Escribe para buscar usuarios de 42...",
     "pressEsc": "ESC para cerrar",
     "level": "Nivel",
-    "errorSearching": "Error al buscar"
+    "errorSearching": "Error al buscar",
+    "load_more": "Cargar más",
+    "filter": {
+      "all": "Todos",
+      "local": "42Hub",
+      "intra": "Intra 42"
+    },
+    "sort": {
+      "by_name": "Por nombre",
+      "by_level": "Por nivel",
+      "by_campus": "Por campus",
+      "ascending": "Ascendente",
+      "descending": "Descendente"
+    }
   },
   "terms": {
     "title": "Términos de Servicio",

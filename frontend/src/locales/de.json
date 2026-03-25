@@ -193,7 +193,20 @@
     "typeToSearch": "Tippen Sie, um nach 42-Benutzern zu suchen...",
     "pressEsc": "ESC zum Schließen",
     "level": "Level",
-    "errorSearching": "Fehler bei der Suche"
+    "errorSearching": "Fehler bei der Suche",
+    "load_more": "Mehr anzeigen",
+    "filter": {
+      "all": "Alle",
+      "local": "42Hub",
+      "intra": "Intra 42"
+    },
+    "sort": {
+      "by_name": "Nach Name",
+      "by_level": "Nach Level",
+      "by_campus": "Nach Campus",
+      "ascending": "Aufsteigend",
+      "descending": "Absteigend"
+    }
   },
   "terms": {
     "title": "Nutzungsbedingungen",

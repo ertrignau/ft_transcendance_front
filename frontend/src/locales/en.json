@@ -193,7 +193,20 @@
     "typeToSearch": "Type to search for 42 users...",
     "pressEsc": "Press ESC to close",
     "level": "Level",
-    "errorSearching": "Error while searching"
+    "errorSearching": "Error while searching",
+    "load_more": "Load more",
+    "filter": {
+      "all": "All",
+      "local": "42Hub",
+      "intra": "Intra 42"
+    },
+    "sort": {
+      "by_name": "By name",
+      "by_level": "By level",
+      "by_campus": "By campus",
+      "ascending": "Ascending",
+      "descending": "Descending"
+    }
   },
   "terms": {
     "title": "Terms of Service",
