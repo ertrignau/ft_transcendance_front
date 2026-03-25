@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 14:07:04 by eric              #+#    #+#             */
-/*   Updated: 2026/03/25 16:07:37 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/25 16:18:31 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,12 +29,33 @@ export default function Feed()
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMorePosts, setHasMorePosts] = useState(true);
     const [displayedPosts, setDisplayedPosts] = useState([]); // State local pour accumuler les posts
+    const [loadedPostIds, setLoadedPostIds] = useState(new Set()); // Track des posts chargés pour éviter les doublons
     const observerTarget = useRef(null);
     const { posts, addPost, toggleLike, deletePost, fetchPosts } = useAppContext();
 
-    // Sync displayedPosts avec posts du contexte quand ils changent
+    // Synchroniser displayedPosts avec le contexte posts
     useEffect(() => {
-        setDisplayedPosts(posts);
+        if (posts.length === 0) {
+            setDisplayedPosts([]);
+            setLoadedPostIds(new Set());
+            return;
+        }
+
+        setDisplayedPosts(prev => {
+            const postIds = posts.map(p => p.id);
+            const newLoadedIds = new Set(postIds);
+            
+            // Déterminer les nouveaux posts à ajouter
+            const newPostIds = postIds.filter(id => !loadedPostIds.has(id));
+            const newPosts = posts.filter(p => newPostIds.includes(p.id));
+            
+            // Mettre à jour la liste avec sync complète du contexte
+            // Pour chaque post du contexte, utiliser la version à jour
+            const updated = posts.filter(p => postIds.includes(p.id));
+            
+            setLoadedPostIds(newLoadedIds);
+            return updated;
+        });
     }, [posts]);
 
     const handleCreatePost = (postData) => {
@@ -82,9 +103,22 @@ export default function Feed()
                     isEdited: p.isEdited || false,
                 }));
                 
-                // ✅ CORRECTED: Ajouter les nouveaux posts à la fin de la liste existante
-                setDisplayedPosts(prev => [...prev, ...formattedPosts]);
-                console.log(`✅ ${formattedPosts.length} posts chargés (page ${nextPage})`);
+                // ✅ CORRECTED: Ajouter UNIQUEMENT les nouveaux posts (dédupliquer)
+                // Filtrer les posts qui ne sont pas déjà chargés
+                const newPosts = formattedPosts.filter(p => !loadedPostIds.has(p.id));
+                
+                if (newPosts.length > 0) {
+                    setDisplayedPosts(prev => [...prev, ...newPosts]);
+                    // Mettre à jour le set des IDs chargés
+                    setLoadedPostIds(prev => {
+                        const updated = new Set(prev);
+                        newPosts.forEach(p => updated.add(p.id));
+                        return updated;
+                    });
+                    console.log(`✅ ${newPosts.length} nouveaux posts chargés (page ${nextPage})`);
+                } else {
+                    console.log("ℹ️ Aucun nouveau post à ajouter");
+                }
                 setCurrentPage(nextPage);
             } else {
                 setHasMorePosts(false);

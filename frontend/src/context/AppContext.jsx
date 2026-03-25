@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:12:55 by eric              #+#    #+#             */
-/*   Updated: 2026/03/25 16:04:38 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/25 16:12:55 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,7 +87,7 @@ export const AppProvider = ({ children }) => {
         const loadPosts = async () => {
             try {
                 console.log("📥 Chargement des posts depuis l'API...");
-                const response = await postsAPI.getFeed(1, 1);
+                const response = await postsAPI.getFeed(1, 10);
                 
                 // Récupérer les likes de l'utilisateur courant
                 let likedPostIds = [];
@@ -129,7 +129,7 @@ export const AppProvider = ({ children }) => {
     const fetchPosts = useCallback(async () => {
         try {
             console.log("🔄 Actualisation du feed...");
-            const response = await postsAPI.getFeed(1, 1);
+            const response = await postsAPI.getFeed(1, 10);
             
             // Récupérer les likes de l'utilisateur courant
             let likedPostIds = [];
@@ -166,7 +166,7 @@ export const AppProvider = ({ children }) => {
     // Fonction pour vérifier s'il y a de nouveaux posts sans les charger
     const checkForNewPosts = useCallback(async () => {
         try {
-            const response = await postsAPI.getFeed(1, 1);
+            const response = await postsAPI.getFeed(1, 10);
             const newPostIds = response.posts?.map(p => p.id) || [];
             const currentPostIds = posts.map(p => p.id);
             
@@ -306,8 +306,16 @@ export const AppProvider = ({ children }) => {
     const deletePost = async (postId) => {
         try {
             await postsAPI.deletePost(postId);
+            // Enlever le post de la liste immédiatement
             setPosts(posts.filter(post => post.id !== postId));
             console.log("✅ Post supprimé:", postId);
+            
+            // Si peu de posts restants, recharger pour en avoir plus
+            const remainingPosts = posts.filter(post => post.id !== postId);
+            if (remainingPosts.length < 5) {
+                console.log("📥 Rechargeant les posts après suppression...");
+                await fetchPosts();
+            }
         } catch (error) {
             console.error("❌ Erreur suppression post:", error);
             alert(`Erreur lors de la suppression: ${error.message}`);
