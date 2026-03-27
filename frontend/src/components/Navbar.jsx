@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 13:47:42 by eric              #+#    #+#             */
-/*   Updated: 2026/03/26 16:04:11 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/27 15:20:56 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -156,6 +156,16 @@ export default function Navbar()
 
 			{/* NAV LINKS */}
 			<div className="flex-1 py-6 px-4 space-y-2">
+					<button
+						onClick={() => setIsSearchOpen(true)}
+						className={`w-full flex items-center justify-center px-4 py-3 rounded-lg transition text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 ${
+							isSearchOpen ? 'bg-blue-600 text-white' : ''
+						}`}
+						title={t('navbar.search')}
+					>
+						<FiSearch className="text-2xl" />
+					</button>
+
 					<Link
 						to="/feed"
 						className={navLinkClasses('/feed')}

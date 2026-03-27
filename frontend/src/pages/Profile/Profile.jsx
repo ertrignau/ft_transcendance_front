@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 14:07:20 by eric              #+#    #+#             */
-/*   Updated: 2026/03/24 14:15:22 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/27 16:26:30 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -223,16 +223,6 @@ export default function Profile()
                     >
                         {t('profile.tabs.media')}
                     </button>
-                    <button 
-                        onClick={() => setActiveTab("likes")}
-                        className={`px-6 py-3 font-semibold ${
-                            activeTab === "likes" 
-                                ? "text-blue-500 border-b-2 border-blue-500" 
-                                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                        }`}
-                    >
-                        {t('profile.tabs.likes')}
-                    </button>
                 </div>
             </div>
 
@@ -297,25 +287,6 @@ export default function Profile()
                     ) : (
                         <div className="col-span-full bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md text-center text-gray-500 dark:text-gray-400">
                             Aucun média pour le moment
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {activeTab === "likes" && (
-                <div className="space-y-4">
-                    {likedPosts.length > 0 ? (
-                        likedPosts.map(post => (
-                            <PostCard 
-                                key={post.id} 
-                                post={post} 
-                                onLike={handleLike}
-                                onDelete={handleDelete}
-                            />
-                        ))
-                    ) : (
-                        <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md text-center text-gray-500 dark:text-gray-400">
-                            Aucun post liké pour le moment
                         </div>
                     )}
                 </div>

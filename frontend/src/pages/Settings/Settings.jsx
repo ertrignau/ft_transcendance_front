@@ -288,14 +288,21 @@ export default function Settings() {
                 </form>
 
                 {/* Bouton Restaurer 42 */}
-                {/* Visible pour tous - le BFF rejettera si l'user n'a pas s'est pas inscrit via 42 */}
+                {/* Désactivé si l'utilisateur n'a pas été inscrit via OAuth 42 */}
                 <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <Button
                         onClick={handleRestore42Profile}
-                        disabled={loading}
+                        disabled={loading || !user?.intraId}
+                        title={!user?.intraId ? 'Cette option n\'est disponible que pour les comptes inscrits via 42' : ''}
                     >
                         {loading ? 'Restauration...' : 'Restaurer le profil 42'}
                     </Button>
+                    {!user?.intraId && (
+                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+                            <FiAlertTriangle className="w-4 h-4" />
+                            <span>Disponible uniquement pour les comptes inscrits via 42</span>
+                        </p>
+                    )}
                 </div>
             </div>
 

@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/12 16:02:01 by eric              #+#    #+#             */
-/*   Updated: 2026/03/24 14:15:22 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/27 16:41:56 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,12 +20,13 @@ import { FiX } from 'react-icons/fi';
 
 export default function PublicProfile() {
 	const { username } = useParams();
-	const { user } = useAppContext();
+	const { user, toggleLike, deletePost } = useAppContext();
 	const [profile, setProfile] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [followLoading, setFollowLoading] = useState(false);
+	const [activeTab, setActiveTab] = useState('posts');
 
 	// Modale followers/following
 	const [modal, setModal] = useState(null); // null | 'followers' | 'following'
@@ -41,7 +42,12 @@ export default function PublicProfile() {
 			setLoading(true);
 			setError(null);
 			try {
+				console.log('🔍 Chargement du profil:', username);
 				const data = await profileAPI.getByUsername(username);
+				console.log('📊 Profile complet:', data);
+				console.log('📝 Posts retournés:', data.posts);
+				console.log('✅ Is registered:', data.isRegistered);
+				console.log('🔢 Nombre de posts:', data.posts ? data.posts.length : 0);
 				setProfile(data);
 				setIsFollowing(data.isFollowing || false);
 			} catch (err) {
@@ -105,6 +111,39 @@ export default function PublicProfile() {
 		} finally {
 			setModalLoading(false);
 		}
+	};
+
+	// Handlers pour like/delete depuis le profil public
+	const handleLike = (postId) => {
+		toggleLike(postId);
+		
+		// Mettre aussi à jour le state local du profil
+		setProfile(prev => ({
+			...prev,
+			posts: prev.posts.map(post => {
+				if (post.id === postId) {
+					return {
+						...post,
+						isLiked: !post.isLiked,
+						_count: {
+							...post._count,
+							likes: post.isLiked ? (post._count?.likes || 1) - 1 : (post._count?.likes || 0) + 1
+						}
+					};
+				}
+				return post;
+			})
+		}));
+	};
+
+	const handleDelete = (postId) => {
+		deletePost(postId);
+		
+		// Supprimer du state local du profil
+		setProfile(prev => ({
+			...prev,
+			posts: prev.posts.filter(post => post.id !== postId)
+		}));
 	};
 
 	if (loading) {
@@ -207,30 +246,72 @@ export default function PublicProfile() {
 				</div>
 			</div>
 
+			{/* Onglets */}
+			<div className="mb-6">
+				<div className="border-b dark:border-gray-700">
+					<button 
+						onClick={() => setActiveTab("posts")}
+						className={`px-6 py-3 font-semibold ${
+							activeTab === "posts" 
+								? "text-blue-500 border-b-2 border-blue-500" 
+								: "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+						}`}
+					>
+						Posts
+					</button>
+					<button 
+						onClick={() => setActiveTab("media")}
+						className={`px-6 py-3 font-semibold ${
+							activeTab === "media" 
+								? "text-blue-500 border-b-2 border-blue-500" 
+								: "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+						}`}
+					>
+						Médias
+					</button>
+				</div>
+			</div>
+
 			{/* Posts de l'utilisateur */}
-			{profile.isRegistered && profile.posts && profile.posts.length > 0 ? (
-				<div className="space-y-4">
-					{profile.posts.map(post => {
-						// Normaliser la structure du post (API profil vs API feed)
-						const normalized = {
-							id: post.id,
-							content: post.content,
-							author: post.user?.username || post.author || profile.username,
-							avatar: post.user?.avatar || post.avatar || `https://ui-avatars.com/api/?name=${profile.firstName || profile.username}&background=3b82f6&color=fff`,
-							likes: post._count?.likes ?? post.likes ?? 0,
-							liked: post.isLiked || post.liked || false,
-							date: new Date(post.createdAt).toLocaleDateString('fr-FR'),
-							userId: post.userId || post.user?.id,
-							createdAt: post.createdAt,
-						};
-						return <PostCard key={post.id} post={normalized} onLike={() => {}} onDelete={() => {}} />;
-					})}
+			{activeTab === "posts" && (
+				profile && (profile.posts && profile.posts.length > 0 ? (
+					<div className="space-y-4">
+						{profile.posts.map(post => {
+							// Normaliser la structure du post (API profil vs API feed)
+							const normalized = {
+								id: post.id,
+								content: post.content,
+								author: post.user?.username || post.author || profile.username,
+								avatar: post.user?.avatar || post.avatar || `https://ui-avatars.com/api/?name=${profile.firstName || profile.username}&background=3b82f6&color=fff`,
+								likes: post._count?.likes ?? post.likes ?? 0,
+								liked: post.isLiked || post.liked || false,
+								date: new Date(post.createdAt).toLocaleDateString('fr-FR'),
+								userId: post.userId || post.user?.id,
+								createdAt: post.createdAt,
+							};
+							return <PostCard 
+								key={post.id} 
+								post={normalized} 
+							onLike={() => handleLike(post.id)} 
+							onDelete={() => handleDelete(post.id)} 
+							/>;
+						})}
+					</div>
+				) : (
+					<div className="text-center text-gray-500 dark:text-gray-400 mt-10">
+						Aucun post pour le moment.
+					</div>
+				))
+			)}
+
+			{/* Médias de l'utilisateur */}
+			{activeTab === "media" && (
+				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+					<div className="col-span-full text-center text-gray-500 dark:text-gray-400">
+						Aucun média pour le moment.
+					</div>
 				</div>
-			) : profile.isRegistered ? (
-				<div className="text-center text-gray-500 mt-10">
-					Aucun post pour le moment.
-				</div>
-			) : null}
+			)}
 
 			{/* Modale followers / following */}
 			{modal && (

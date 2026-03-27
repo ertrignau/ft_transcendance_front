@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/16 16:12:07 by eric              #+#    #+#             */
-/*   Updated: 2026/03/26 16:04:10 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/27 17:22:42 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,60 +79,67 @@ export default function Register42() {
 	const validate = () => {
 		const newErrors = {};
 		
-					// Les champs de l'API 42 ne nécessitent pas de validation
-					// (ils sont verrouillés et ne peuvent pas être modifiés)
-					
+		// Vérifie que les deux mots de passe sont identiques
+		if (form.password !== form.confirmPassword) {
 			newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
-		
+		}
+
+		// (Tu peux ajouter d'autres validations ici si besoin, ex: longueur minimale, regex, etc)
+
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
 	};
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-		if (!validate()) return;
-		
-		setLoading(true);
-		try {
-			// ⚠️ Envoyer ONLY password et confirmPassword (les données API 42 viennent du backend)
-			const response = await authAPI.confirm42({
-				password: form.password,
-				confirmPassword: form.confirmPassword,
-				tempToken,
-			});
-			login(response.user, response.token);
-			
-			// Appliquer le theme du user
-			if (response.user.theme) {
-				setTheme(response.user.theme);
-			}
-			
-			// Upload avatar custom si l'utilisateur en a changé
-			if (form.avatar && form.avatar.startsWith('data:image/')) {
-				try {
-					await uploadAPI.uploadAvatar(form.avatar);
-					console.log('✅ Avatar uploadé avec succès');
-				} catch (uploadErr) {
-					console.error('❌ Erreur upload avatar:', uploadErr);
-					// On continue quand même vers le feed même si l'upload échoue
-					setErrors({ global: 'Avatar non uploadé mais compte créé: ' + uploadErr.message });
-					// Continuer après 2 secondes
-					setTimeout(() => navigate("/feed"), 2000);
-					return;
-				}
-			}
-			
-			navigate("/feed");
-		} catch (err) {
-			// Si compte déjà existant → rediriger vers login
-			if (err.status === 409) {
-				navigate("/login?error=account_exists");
-				return;
-			}
-			setErrors({ global: err.message });
-		} finally {
-			setLoading(false);
-		}
+        if (!validate()) return;
+
+        setLoading(true);
+        try {
+            // ⚠️ Envoyer ONLY password et confirmPassword (les données API 42 viennent du backend)
+            const response = await authAPI.confirm42({
+                password: form.password,
+                confirmPassword: form.confirmPassword,
+                tempToken,
+            });
+
+            // Stocker le token JWT et l'utilisateur
+            localStorage.setItem('access_token', response.token);
+            if (response.user) {
+                setUser(response.user);
+            }
+
+            // Appliquer le theme du user
+            if (response.user && response.user.theme) {
+                setTheme(response.user.theme);
+            }
+
+            // Upload avatar custom si l'utilisateur en a changé
+            if (form.avatar && form.avatar.startsWith('data:image/')) {
+                try {
+                    await uploadAPI.uploadAvatar(form.avatar);
+                    console.log('✅ Avatar uploadé avec succès');
+                } catch (uploadErr) {
+                    console.error('❌ Erreur upload avatar:', uploadErr);
+                    // On continue quand même vers le feed même si l'upload échoue
+                    setErrors({ global: 'Avatar non uploadé mais compte créé: ' + uploadErr.message });
+                    // Continuer après 2 secondes
+                    setTimeout(() => navigate("/feed"), 2000);
+                    return;
+                }
+            }
+
+            navigate("/feed");
+        } catch (err) {
+            // Si compte déjà existant → rediriger vers login
+            if (err.status === 409) {
+                navigate("/login?error=account_exists");
+                return;
+            }
+            setErrors({ global: err.message });
+        } finally {
+            setLoading(false);
+        }
 	};
 
 	const handleAvatarChange = (e) => {

@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 10:35:59 by eric              #+#    #+#             */
-/*   Updated: 2026/03/26 12:00:30 by eric             ###   ########.fr       */
+/*   Updated: 2026/03/27 15:11:56 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -230,7 +230,7 @@ export const usersAPI = {
 
 	// Rechercher des utilisateurs
 	searchUsers: async (query) => {
-		return fetchWithAuth(`/users/search?q=${encodeURIComponent(query)}`);
+		return fetchWithAuth(`/search/users?query=${encodeURIComponent(query)}`);
 	},
 
 	// Mettre à jour un utilisateur
