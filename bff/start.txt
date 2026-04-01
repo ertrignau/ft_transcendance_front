@@ -1,0 +1,16 @@
+mkdir my-api
+cd my-api
+
+npm init -y   //initialisation projet node et cree fichier package.json
+npm install express
+
+
+info :
+node script.js > sortie.txt 2> erreur.txt
+> redirige stdout vers sortie.txt
+2> redirige stderr vers erreur.txt
+
+export plusieurs variables : module.exports = { PI, add, multiply };
+
+npm install prisma @prisma/client
+npx prisma init

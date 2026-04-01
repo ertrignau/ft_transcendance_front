@@ -1,0 +1,131 @@
+Générer les clés :
+
+# 1. Générer la CA
+openssl genrsa -out ca.key 4096
+openssl req -new -x509 -days 365 -key ca.key -out ca.crt -subj "/CN=CA"
+
+# 2. Générer la clé et la CSR du userService
+openssl genrsa -out user.key 4096
+openssl req -new -key user.key -out user.csr -subj "/CN=userService"
+
+# 3. Signer
+openssl x509 -req -days 365 -in user.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out user.crt
+
+# 4. Vérifier
+cat user.crt
+
+# 5. Nettoyer
+rm user.csr ca.srl ca.key
+
+--------------------------------------
+
+Créer la base de données :
+
+# 1. Créer la base dans PostgreSQL
+psql -U adrien -d postgres -c "CREATE DATABASE userservicedb;"
+
+# 2. Vérifier qu'elle existe
+psql -U adrien -d postgres -c "\l"
+
+----------------------------------------
+
+Iitialiser le projet node :
+npm init -y
+
+Installer les dépendances :
+npm install express dotenv @prisma/client @prisma/adapter-pg pg nodemon uuid
+npm install -D prisma tsx
+
+Initialiser Prisma :
+npx prisma init
+
+(
+    Puis immédiatement écraser le .env généré :
+    cat > .env << 'EOF'
+PORT=3000
+SSL_KEY_PATH=./certs/user.key
+SSL_CERT_PATH=./certs/user.crt
+SSL_CA_PATH=./certs/ca.crt
+DATABASE_URL="postgresql://adrien@localhost:5432/userservicedb"
+EOF
+)
+
+Définir le schéma Prisma :
+cat > prisma/schema.prisma << 'EOF'
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  firstName String
+  lastName  String
+  avatar    String?
+  theme     Theme    @default(LIGHT)
+  langue    String   @default("en")
+  createdAt DateTime @default(now())
+}
+
+enum Theme {
+  LIGHT
+  DARK
+}
+EOF
+
+Créer prisma.config.ts :
+cat > prisma.config.ts << 'EOF'
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+  },
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
+});
+EOF
+
+Lancer la migration :
+npx prisma migrate dev --name init
+
+Créer le client Prisma :
+mkdir -p src/config
+
+cat > src/config/prisma.js << 'EOF'
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+
+const prisma = new PrismaClient({ adapter });
+
+module.exports = prisma;
+EOF
+```
+
+---
+
+## Résumé des fichiers créés
+```
+userService/
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+├── src/
+│   └── config/
+│       └── prisma.js
+├── prisma.config.ts
+├── .env
+└── package.json
+
+
+Lancer :
+npx prisma generate
