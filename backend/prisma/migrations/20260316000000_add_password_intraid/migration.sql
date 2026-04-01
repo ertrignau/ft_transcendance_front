@@ -1,3 +1,0 @@
-ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "password" TEXT;
-ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "intraId" TEXT;
-CREATE UNIQUE INDEX IF NOT EXISTS "users_intraId_key" ON "users"("intraId");
