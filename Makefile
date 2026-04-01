@@ -6,7 +6,7 @@
 #    By: eric <eric@student.42.fr>                  +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/03/03 11:00:00 by eric              #+#    #+#              #
-#    Updated: 2026/03/25 13:33:25 by eric             ###   ########.fr        #
+#    Updated: 2026/04/01 14:36:44 by eric             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,7 +14,7 @@
 # VARIABLES
 # ===================================
 
-BACKEND_DIR = backend
+BFF_DIR = bff
 FRONTEND_DIR = frontend
 
 # Couleurs pour les messages
@@ -78,9 +78,13 @@ install: install-back install-front
 	@echo "$(GREEN)✅ Installation complète terminée !$(RESET)"
 
 install-back:
-	@echo "$(BLUE)📦 Installation des dépendances backend...$(RESET)"
-	@cd $(BACKEND_DIR) && npm install
-	@echo "$(GREEN)✅ Backend installé !$(RESET)"
+	@echo "$(BLUE)📦 Installation des dépendances BFF...$(RESET)"
+	@cd $(BFF_DIR)/authService && npm install
+	@cd $(BFF_DIR)/userService && npm install
+	@cd $(BFF_DIR)/contentService && npm install
+	@cd $(BFF_DIR)/socialService && npm install
+	@cd $(BFF_DIR)/backendForFrontend && npm install
+	@echo "$(GREEN)✅ BFF installé !$(RESET)"
 
 install-front:
 	@echo "$(BLUE)📦 Installation des dépendances frontend...$(RESET)"
@@ -93,14 +97,22 @@ install-front:
 
 dev:
 	@echo "$(BLUE)🚀 Lancement de 42Hub en mode développement...$(RESET)"
-	@echo "$(YELLOW)Backend: http://localhost:3000$(RESET)"
-	@echo "$(YELLOW)Frontend: http://localhost:5173$(RESET)"
+	@echo "$(YELLOW)Auth:          https://localhost:3000$(RESET)"
+	@echo "$(YELLOW)User:          https://localhost:3001$(RESET)"
+	@echo "$(YELLOW)Social:        https://localhost:3002$(RESET)"
+	@echo "$(YELLOW)Content:       https://localhost:3003$(RESET)"
+	@echo "$(YELLOW)BFF Gateway:   https://localhost:3005$(RESET)"
+	@echo "$(YELLOW)Frontend:      http://localhost:5173$(RESET)"
 	@echo ""
 	@make -j2 dev-back dev-front
 
 dev-back:
-	@echo "$(BLUE)🔧 Démarrage du backend...$(RESET)"
-	@cd $(BACKEND_DIR) && npm run dev
+	@echo "$(BLUE)🔧 Démarrage du BFF (5 services)...$(RESET)"
+	@cd $(BFF_DIR)/authService && npm run dev &
+	@cd $(BFF_DIR)/userService && npm run dev &
+	@cd $(BFF_DIR)/contentService && npm run dev &
+	@cd $(BFF_DIR)/socialService && npm run dev &
+	@cd $(BFF_DIR)/backendForFrontend && npm run dev
 
 dev-front:
 	@echo "$(BLUE)🎨 Démarrage du frontend...$(RESET)"
@@ -112,22 +124,28 @@ dev-front:
 
 db-migrate:
 	@echo "$(BLUE)🗄️  Application des migrations Prisma...$(RESET)"
-	@cd $(BACKEND_DIR) && npx prisma migrate dev
+	@cd $(BFF_DIR)/authService && npx prisma migrate dev
+	@cd $(BFF_DIR)/userService && npx prisma migrate dev
+	@cd $(BFF_DIR)/contentService && npx prisma migrate dev
+	@cd $(BFF_DIR)/socialService && npx prisma migrate dev
 	@echo "$(GREEN)✅ Migrations appliquées !$(RESET)"
 
 db-seed:
-	@echo "$(BLUE)🌱 Remplissage de la base de données...$(RESET)"
-	@cd $(BACKEND_DIR) && npm run seed
-	@echo "$(GREEN)✅ Base de données remplie !$(RESET)"
+	@echo "$(BLUE)🌱 Remplissage de la base de données BFF...$(RESET)"
+	@echo "$(YELLOW)Note: À implémenter si nécessaire pour chaque service$(RESET)"
+	@echo "$(GREEN)✅ Base de données prête !$(RESET)"
 
 db-reset:
-	@echo "$(RED)⚠️  Réinitialisation de la base de données...$(RESET)"
-	@cd $(BACKEND_DIR) && npx prisma migrate reset --force
+	@echo "$(RED)⚠️  Réinitialisation de la base de données BFF...$(RESET)"
+	@cd $(BFF_DIR)/authService && npx prisma migrate reset --force
+	@cd $(BFF_DIR)/userService && npx prisma migrate reset --force
+	@cd $(BFF_DIR)/contentService && npx prisma migrate reset --force
+	@cd $(BFF_DIR)/socialService && npx prisma migrate reset --force
 	@echo "$(GREEN)✅ Base de données réinitialisée !$(RESET)"
 
 db-studio:
-	@echo "$(BLUE)🎨 Ouverture de Prisma Studio...$(RESET)"
-	@cd $(BACKEND_DIR) && npx prisma studio
+	@echo "$(BLUE)🎨 Ouverture de Prisma Studio (Auth Service)...$(RESET)"
+	@cd $(BFF_DIR)/authService && npx prisma studio
 
 # ===================================
 # PRODUCTION
@@ -140,7 +158,7 @@ build:
 
 start: build
 	@echo "$(BLUE)🚀 Démarrage en mode production...$(RESET)"
-	@cd $(BACKEND_DIR) && npm run start
+	@echo "$(YELLOW)Les services BFF doivent être démarrés manuellement ou via Docker$(RESET)"
 
 # ===================================
 # NETTOYAGE
@@ -148,13 +166,21 @@ start: build
 
 clean:
 	@echo "$(YELLOW)🧹 Nettoyage des fichiers temporaires...$(RESET)"
-	@cd $(BACKEND_DIR) && rm -rf dist .next .cache
+	@cd $(BFF_DIR)/authService && rm -rf dist .next .cache
+	@cd $(BFF_DIR)/userService && rm -rf dist .next .cache
+	@cd $(BFF_DIR)/contentService && rm -rf dist .next .cache
+	@cd $(BFF_DIR)/socialService && rm -rf dist .next .cache
+	@cd $(BFF_DIR)/backendForFrontend && rm -rf dist .next .cache
 	@cd $(FRONTEND_DIR) && rm -rf dist .next .cache
 	@echo "$(GREEN)✅ Nettoyage terminé !$(RESET)"
 
 fclean: clean
 	@echo "$(RED)🗑️  Nettoyage complet (node_modules)...$(RESET)"
-	@rm -rf $(BACKEND_DIR)/node_modules
+	@rm -rf $(BFF_DIR)/authService/node_modules
+	@rm -rf $(BFF_DIR)/userService/node_modules
+	@rm -rf $(BFF_DIR)/contentService/node_modules
+	@rm -rf $(BFF_DIR)/socialService/node_modules
+	@rm -rf $(BFF_DIR)/backendForFrontend/node_modules
 	@rm -rf $(FRONTEND_DIR)/node_modules
 	@echo "$(GREEN)✅ Nettoyage complet terminé !$(RESET)"
 
@@ -167,13 +193,14 @@ re: fclean install
 
 stop:
 	@echo "$(RED)🛑 Arrêt des serveurs...$(RESET)"
-	@pkill -f "node.*backend" || true
+	@pkill -f "npm run dev" || true
 	@pkill -f "vite" || true
+	@pkill -f "node.*server.js" || true
 	@echo "$(GREEN)✅ Serveurs arrêtés !$(RESET)"
 
 logs:
 	@echo "$(BLUE)📋 Logs des serveurs...$(RESET)"
-	@tail -f $(BACKEND_DIR)/logs/*.log 2>/dev/null || echo "Pas de logs disponibles"
+	@echo "$(YELLOW)À implémenter selon votre système de logs$(RESET)"
 
 # ===================================
 # TESTS (optionnel)
@@ -181,12 +208,11 @@ logs:
 
 test:
 	@echo "$(BLUE)🧪 Lancement des tests...$(RESET)"
-	@cd $(BACKEND_DIR) && npm test
 	@cd $(FRONTEND_DIR) && npm test
 
 test-back:
-	@echo "$(BLUE)🧪 Tests backend...$(RESET)"
-	@cd $(BACKEND_DIR) && npm test
+	@echo "$(BLUE)🧪 Tests BFF...$(RESET)"
+	@echo "$(YELLOW)À implémenter si nécessaire$(RESET)"
 
 test-front:
 	@echo "$(BLUE)🧪 Tests frontend...$(RESET)"

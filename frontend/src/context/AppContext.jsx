@@ -87,26 +87,28 @@ export const AppProvider = ({ children }) => {
         const loadPosts = async () => {
             try {
                 console.log("📥 Chargement des posts depuis l'API...");
-                const response = await postsAPI.getFeed(1, 10);
+                const response = await postsAPI.getFeed(10);
                 
                 // Récupérer les likes de l'utilisateur courant
                 let likedPostIds = [];
-                try {
-                    const likesData = await likesAPI.getMyLikes();
-                    likedPostIds = likesData.likedPostIds || [];
-                    console.log("❤️ Posts likés:", likedPostIds);
-                } catch (error) {
-                    console.warn("⚠️ Impossible de récupérer les likes:", error);
-                    // Continuer même si on ne peut pas récupérer les likes
+                if (user?.id) {
+                    try {
+                        const likedPosts = await postsAPI.getLikedPosts(user.id, 100);
+                        likedPostIds = likedPosts?.map(p => p.id) || [];
+                        console.log("❤️ Posts likés:", likedPostIds);
+                    } catch (error) {
+                        console.warn("⚠️ Impossible de récupérer les likes:", error);
+                        // Continuer même si on ne peut pas récupérer les likes
+                    }
                 }
                 
                 // Formatter les posts pour l'affichage
-                const formattedPosts = response.posts?.map(p => ({
+                const formattedPosts = response?.map(p => ({
                     id: p.id,
                     author: p.user?.username || p.user?.firstName || 'Anonyme',
                     avatar: p.user?.avatar || `https://ui-avatars.com/api/?name=${p.user?.firstName || 'User'}&background=3b82f6&color=fff`,
                     content: p.content,
-                    likes: p._count?.likes || 0,
+                    likes: p._count?.likes || p.likes || 0,
                     liked: likedPostIds.includes(p.id),
                     date: new Date(p.createdAt).toLocaleDateString('fr-FR'),
                     userId: p.userId,
