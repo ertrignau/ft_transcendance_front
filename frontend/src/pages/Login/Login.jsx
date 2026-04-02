@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 13:17:00 by eric              #+#    #+#             */
-/*   Updated: 2026/03/26 16:04:08 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/01 16:35:52 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,6 +59,8 @@ export default function Login()
 			
 			// Stocker les tokens
 			localStorage.setItem('access_token', response.access_token);
+			localStorage.setItem('user_id', response.id || response.userId);
+			console.log('📝 user_id save:', response.id || response.userId);
 			if (response.refresh_token) {
 				localStorage.setItem('refresh_token', response.refresh_token);
 			}

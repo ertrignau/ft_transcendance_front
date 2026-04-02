@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/28 10:35:58 by eric              #+#    #+#             */
-/*   Updated: 2026/04/01 14:12:35 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/01 16:32:15 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -144,6 +144,18 @@ export const authAPI = {
 			method: 'PUT',
 			body: JSON.stringify({ password, newPassword }),
 		});
+	},
+
+	getCurrentUser: async () => {
+		const userId = localStorage.getItem('user_id');
+		if (!userId) return null;
+		
+		try {
+			return await userAPI.getUser(userId);
+		} catch (error) {
+			console.error('❌ Erreur getCurrentUser:', error);
+			return null;
+		}
 	},
 
 	logout: async () => {
