@@ -82,12 +82,12 @@ export default function SearchModal({ isOpen, onClose }) {
 				
 				if (filter === "all" || filter === "local") {
 					const localRes = results[0];
-					localData = localRes.status === 'fulfilled' ? (localRes.value.users || []) : [];
+					localData = localRes.status === 'fulfilled' ? (localRes.value || []) : [];
 				}
 				
 				if (filter === "all" || filter === "intra") {
 					const intraRes = filter === "all" ? results[1] : results[0];
-					intraData = intraRes.status === 'fulfilled' ? (intraRes.value.users || []) : [];
+					intraData = intraRes.status === 'fulfilled' ? (intraRes.value || []) : [];
 				}
 
 				setLocalUsers(localData);

@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/16 16:12:07 by eric              #+#    #+#             */
-/*   Updated: 2026/03/27 17:22:42 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 14:35:56 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ import { authAPI, uploadAPI } from "../../services/api"
 export default function Register42() {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
-	const { login, setTheme } = useAppContext();
+	const { login, setTheme, setUser } = useAppContext();
 	
 	const [form, setForm] = useState({
 		username:	"",
@@ -40,21 +40,29 @@ export default function Register42() {
 	// Au chargement, on decodes le JWT tempToken pour récupérer les données API 42
 	useEffect(() => {
 		const token = searchParams.get("tempToken");
+		console.log('🔵 [REGISTER42] Chargement, tempToken présent:', !!token);
 
 		if (!token) {
+			console.warn('⚠️ [REGISTER42] Pas de tempToken, redirection login');
 			navigate("/login");
 			return;
 		}
 
 		try {
+			console.log('🔵 [REGISTER42] Décodage du JWT tempToken');
 			// Décoder le JWT (sans vérifier la signature, juste pour lire les données)
 			const parts = token.split('.');
 			if (parts.length !== 3) throw new Error('Invalid JWT');
 			
 			const decoded = JSON.parse(atob(parts[1]));
-			const { username, email, firstName, lastName, avatar, campus, cursus, level, intraId } = decoded;
+			console.log('🟢 [REGISTER42] Données décryptes:', { login: decoded.login, email: decoded.email, firstName: decoded.first_name, lastName: decoded.last_name });
+			// Map from API 42 field names to form field names
+			const username = decoded.login;  // API sends 'login', not 'username'
+			const firstName = decoded.first_name;  // API sends 'first_name'
+			const lastName = decoded.last_name;  // API sends 'last_name'
+			const { email, avatar } = decoded;
 			
-			if (!username || !email || !firstName || !lastName || !intraId)
+			if (!username || !email || !firstName || !lastName)
 				throw new Error('Missing required data in token');
 			
 			setForm({
@@ -65,13 +73,14 @@ export default function Register42() {
 				avatar:		avatar || "",
 				password:	"",
 				confirmPassword: "",
-				campus:		campus || "",
-				cursus:		cursus || "",
-				level:		level || 0,
+				campus:		"",
+				cursus:		"",
+				level:		0,
 			});
 			setTempToken(token);
+			console.log('🟢 [REGISTER42] Formulaire prêt à être complété');
 		} catch (err) {
-			console.error('Erreur décodage token:', err);
+			console.error('❌ [REGISTER42] Erreur décodage token:', err);
 			navigate("/login");
 		}
 	}, [searchParams, navigate]);
@@ -96,43 +105,42 @@ export default function Register42() {
 
         setLoading(true);
         try {
-            // ⚠️ Envoyer ONLY password et confirmPassword (les données API 42 viennent du backend)
-            const response = await authAPI.confirm42({
+            console.log('🟠 [REGISTER42] Soumission du formulaire');
+            console.log('🟠 [REGISTER42] Appel authAPI.register() avec is42=true');
+            // Envoyer toutes les données 42 + password au backend
+            const response = await authAPI.register({
+                username: form.username,
+                firstName: form.firstName,
+                lastName: form.lastName,
+                email: form.email,
                 password: form.password,
-                confirmPassword: form.confirmPassword,
-                tempToken,
-            });
+                avatarUrl: form.avatar, // Avatar URL from 42 API
+            }, true); // is42 = true
 
-            // Stocker le token JWT et l'utilisateur
-            localStorage.setItem('access_token', response.token);
-            if (response.user) {
+            // Pour 42, register retourne maintenant : { token, user }
+            console.log('🟢 [REGISTER42] Inscription 42 réussie', response);
+            
+            if (response.token) {
+                console.log('🟢 [REGISTER42] Token reçu, stockage et redirection vers feed');
+                // Stocker le token d'accès
+                localStorage.setItem('access_token', response.token);
+                localStorage.setItem('user_id', response.user?.id);
+                
+                // Charger et stocker l'utilisateur dans le contexte
                 setUser(response.user);
+                
+                // Rediriger vers le feed
+                navigate('/feed');
+            } else {
+                // Si pas de token (inscription classique), rediriger vers login
+                console.log('🟢 [REGISTER42] Pas de token, redirection vers login');
+                navigate('/login', { state: { message: 'Inscription réussie! Veuillez vous connecter.' } });
             }
-
-            // Appliquer le theme du user
-            if (response.user && response.user.theme) {
-                setTheme(response.user.theme);
-            }
-
-            // Upload avatar custom si l'utilisateur en a changé
-            if (form.avatar && form.avatar.startsWith('data:image/')) {
-                try {
-                    await uploadAPI.uploadAvatar(form.avatar);
-                    console.log('✅ Avatar uploadé avec succès');
-                } catch (uploadErr) {
-                    console.error('❌ Erreur upload avatar:', uploadErr);
-                    // On continue quand même vers le feed même si l'upload échoue
-                    setErrors({ global: 'Avatar non uploadé mais compte créé: ' + uploadErr.message });
-                    // Continuer après 2 secondes
-                    setTimeout(() => navigate("/feed"), 2000);
-                    return;
-                }
-            }
-
-            navigate("/feed");
         } catch (err) {
-            // Si compte déjà existant → rediriger vers login
+            console.error('❌ [REGISTER42] Erreur lors de l\'inscription:', err);
+            // If account already exists → redirect to login
             if (err.status === 409) {
+                console.warn('⚠️ [REGISTER42] Compte déjà existant');
                 navigate("/login?error=account_exists");
                 return;
             }

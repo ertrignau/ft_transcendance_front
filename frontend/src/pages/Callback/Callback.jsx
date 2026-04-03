@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/12 11:48:31 by eric              #+#    #+#             */
-/*   Updated: 2026/02/17 14:27:41 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/02 13:37:59 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,11 +43,12 @@ export default function Callback()
             try {
                 console.log("🔐 Callback - Début authentification avec code:", code);
                 
-                const response = await authAPI.callback42(code);
-                console.log("✅ Callback - Tokens reçus:", response);
+                const response = await authAPI.handleAuth42Callback(code);
+                console.log("✅ Callback - Response reçue:", response);
                 
                 // Stocker les tokens dans localStorage
-                localStorage.setItem('access_token', response.access_token);
+                localStorage.setItem('access_token', response.access_token || response.token);
+                localStorage.setItem('user_id', response.id || response.userId);
                 if (response.refresh_token) {
                     localStorage.setItem('refresh_token', response.refresh_token);
                 }

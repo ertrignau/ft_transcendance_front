@@ -86,8 +86,17 @@ export const AppProvider = ({ children }) => {
     useEffect(() => {
         const loadPosts = async () => {
             try {
+                // Only load posts if user is authenticated
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    console.log("⚠️ No auth token, skipping posts load");
+                    setPosts([]);
+                    return;
+                }
+                
                 console.log("📥 Chargement des posts depuis l'API...");
                 const response = await postsAPI.getFeed(10);
+                console.log("📥 Réponse API brute:", response);
                 
                 // Récupérer les likes de l'utilisateur courant
                 let likedPostIds = [];
@@ -105,8 +114,8 @@ export const AppProvider = ({ children }) => {
                 // Formatter les posts pour l'affichage
                 const formattedPosts = response?.map(p => ({
                     id: p.id,
-                    author: p.user?.username || p.user?.firstName || 'Anonyme',
-                    avatar: p.user?.avatar || `https://ui-avatars.com/api/?name=${p.user?.firstName || 'User'}&background=3b82f6&color=fff`,
+                    author: p.author || p.user?.username || p.user?.firstName || 'Anonyme',
+                    avatar: p.avatar || p.user?.avatar || `https://ui-avatars.com/api/?name=${p.author || p.user?.firstName || 'User'}&background=3b82f6&color=fff`,
                     content: p.content,
                     likes: p._count?.likes || p.likes || 0,
                     liked: likedPostIds.includes(p.id),
@@ -116,6 +125,7 @@ export const AppProvider = ({ children }) => {
                 })) || [];
                 
                 console.log("✅ Posts chargés:", formattedPosts.length);
+                console.log("📋 Premiers posts formatés:", formattedPosts.slice(0, 2));
                 setPosts(formattedPosts);
             } catch (error) {
                 console.error("❌ Erreur chargement posts:", error);
@@ -125,13 +135,13 @@ export const AppProvider = ({ children }) => {
         };
 
         loadPosts();
-    }, []);
+    }, [user]);
 
     // Fonction pour rafraîchir les posts manuellement
     const fetchPosts = useCallback(async () => {
         try {
             console.log("🔄 Actualisation du feed...");
-            const response = await postsAPI.getFeed(1, 10);
+            const response = await postsAPI.getFeed(10);
             
             // Récupérer les likes de l'utilisateur courant
             let likedPostIds = [];
@@ -144,10 +154,10 @@ export const AppProvider = ({ children }) => {
                 // Continuer même si on ne peut pas récupérer les likes
             }
             
-            const formattedPosts = response.posts?.map(p => ({
+            const formattedPosts = response?.map(p => ({
                 id: p.id,
-                author: p.user?.username || p.user?.firstName || 'Anonyme',
-                avatar: p.user?.avatar || `https://ui-avatars.com/api/?name=${p.user?.firstName || 'User'}&background=3b82f6&color=fff`,
+                author: p.author || p.user?.username || p.user?.firstName || 'Anonyme',
+                avatar: p.avatar || p.user?.avatar || `https://ui-avatars.com/api/?name=${p.author || p.user?.firstName || 'User'}&background=3b82f6&color=fff`,
                 content: p.content,
                 likes: p._count?.likes || 0,
                 liked: likedPostIds.includes(p.id),
@@ -168,8 +178,8 @@ export const AppProvider = ({ children }) => {
     // Fonction pour vérifier s'il y a de nouveaux posts sans les charger
     const checkForNewPosts = useCallback(async () => {
         try {
-            const response = await postsAPI.getFeed(1, 10);
-            const newPostIds = response.posts?.map(p => p.id) || [];
+            const response = await postsAPI.getFeed(10);
+            const newPostIds = response?.map(p => p.id) || [];
             const currentPostIds = posts.map(p => p.id);
             
             // Vérifier s'il y a des posts qui ne sont pas dans la liste actuelle
@@ -257,10 +267,10 @@ export const AppProvider = ({ children }) => {
             // Formatter le post pour l'affichage
             const newPost = {
                 id: createdPost.id, // Utiliser l'ID de la BDD
-                author: user?.username || user?.firstName || 'Vous',
-                avatar: user?.avatar || `https://ui-avatars.com/api/?name=${user?.firstName || 'User'}&background=3b82f6&color=fff`,
+                author: createdPost.author || user?.username || user?.firstName || 'Vous',
+                avatar: createdPost.avatar || user?.avatar || `https://ui-avatars.com/api/?name=${createdPost.author || user?.firstName || 'User'}&background=3b82f6&color=fff`,
                 content: createdPost.content,
-                likes: createdPost._count?.likes || 0,
+                likes: createdPost._count?.likes || createdPost.likesCount || 0,
                 liked: false,
                 date: 'À l\'instant',
                 userId: user?.id,

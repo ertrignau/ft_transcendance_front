@@ -6,7 +6,7 @@
 #    By: eric <eric@student.42.fr>                  +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/03/03 11:00:00 by eric              #+#    #+#              #
-#    Updated: 2026/04/01 14:36:44 by eric             ###   ########.fr        #
+#    Updated: 2026/04/02 14:47:11 by eric             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -102,17 +102,21 @@ dev:
 	@echo "$(YELLOW)Social:        https://localhost:3002$(RESET)"
 	@echo "$(YELLOW)Content:       https://localhost:3003$(RESET)"
 	@echo "$(YELLOW)BFF Gateway:   https://localhost:3005$(RESET)"
-	@echo "$(YELLOW)Frontend:      http://localhost:5173$(RESET)"
+	@echo "$(YELLOW)Frontend:      https://localhost:5173$(RESET)"
 	@echo ""
 	@make -j2 dev-back dev-front
 
 dev-back:
 	@echo "$(BLUE)🔧 Démarrage du BFF (5 services)...$(RESET)"
-	@cd $(BFF_DIR)/authService && npm run dev &
-	@cd $(BFF_DIR)/userService && npm run dev &
-	@cd $(BFF_DIR)/contentService && npm run dev &
-	@cd $(BFF_DIR)/socialService && npm run dev &
-	@cd $(BFF_DIR)/backendForFrontend && npm run dev
+	@set -e; \
+	pids=""; \
+	( cd $(BFF_DIR)/authService && npm run dev ) & pids="$$pids $$!"; \
+	( cd $(BFF_DIR)/userService && npm run dev ) & pids="$$pids $$!"; \
+	( cd $(BFF_DIR)/contentService && npm run dev ) & pids="$$pids $$!"; \
+	( cd $(BFF_DIR)/socialService && npm run dev ) & pids="$$pids $$!"; \
+	( cd $(BFF_DIR)/backendForFrontend && npm run dev ) & pids="$$pids $$!"; \
+	trap 'kill $$pids 2>/dev/null || true' INT TERM EXIT; \
+	wait
 
 dev-front:
 	@echo "$(BLUE)🎨 Démarrage du frontend...$(RESET)"
@@ -193,9 +197,9 @@ re: fclean install
 
 stop:
 	@echo "$(RED)🛑 Arrêt des serveurs...$(RESET)"
-	@pkill -f "npm run dev" || true
-	@pkill -f "vite" || true
-	@pkill -f "node.*server.js" || true
+	@for p in 3000 3001 3002 3003 3005 5173; do \
+		lsof -ti :$$p | xargs -r kill 2>/dev/null || true; \
+	done
 	@echo "$(GREEN)✅ Serveurs arrêtés !$(RESET)"
 
 logs:

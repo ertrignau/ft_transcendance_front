@@ -1,3 +1,5 @@
+const prisma = require('./prisma');
+
 // POSTS
 
 exports.createOnePost = async (req, res) => {
@@ -12,7 +14,7 @@ exports.createOnePost = async (req, res) => {
       return res.status(400).json({ error: 'At least one of content, image or pdf is required.' });
     }
 
-    await prisma.post.create({
+    const post = await prisma.post.create({
       data: {
         userId,
         content: content ?? null,
@@ -21,9 +23,11 @@ exports.createOnePost = async (req, res) => {
       },
     });
 
-    return res.sendStatus(201);
+    return res.status(201).json(post);
   }
   catch (error) {
+    console.error('❌ [CONTENT-CONTROLLER] createOnePost error:', error.message);
+    console.error('❌ [CONTENT-CONTROLLER] Full error:', error);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
@@ -198,7 +202,7 @@ exports.createOneComment = async (req, res) => {
       return res.status(400).json({ error: 'userId, postId and content are required.' });
     }
 
-    await prisma.comment.create({
+    const comment = await prisma.comment.create({
       data: {
         userId,
         postId,
@@ -206,7 +210,7 @@ exports.createOneComment = async (req, res) => {
       },
     });
 
-    return res.sendStatus(201);
+    return res.status(201).json(comment);
   }
   catch (error) {
     switch (error.code) {
@@ -411,14 +415,14 @@ exports.createOneLike = async (req, res) => {
       return res.status(400).json({ error: 'userId and postId are required.' });
     }
 
-    await prisma.like.create({
+    const like = await prisma.like.create({
       data: {
         userId,
         postId,
       },
     });
 
-    return res.sendStatus(201);
+    return res.status(201).json(like);
   }
   catch (error) {
     switch (error.code) {

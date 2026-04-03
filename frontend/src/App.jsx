@@ -40,7 +40,7 @@ function App()
               {/*ROUTE SANS NAVBAR */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/register/42" element={<Register42 />} />
+              <Route path="/register42" element={<Register42 />} />
               <Route path="/callback" element={<Callback />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />

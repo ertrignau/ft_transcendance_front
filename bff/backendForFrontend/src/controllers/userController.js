@@ -306,7 +306,10 @@ exports.getPostsFromUser = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const postsResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/post/user/${userId}`);
+    const [postsResponse, userResponse] = await Promise.all([
+      fetch(`${process.env.CONTENT_SERVICE_URL}/post/user/${userId}`),
+      fetch(`${process.env.USER_SERVICE_URL}/${userId}`),
+    ]);
 
     if (postsResponse.status === 404) {
       return res.status(404).json({ error: 'User not found.' });
@@ -317,6 +320,7 @@ exports.getPostsFromUser = async (req, res) => {
     }
 
     const posts = await postsResponse.json();
+    const userData = userResponse.ok ? await userResponse.json() : null;
 
     if (posts.length === 0) {
       return res.status(200).json([]);
@@ -340,6 +344,8 @@ exports.getPostsFromUser = async (req, res) => {
         image:         post.image      ?? null,
         pdf:           post.pdf        ?? null,
         userId:        post.userId,
+        author:        userData?.username || userData?.firstName || 'User',
+        avatar:        userData?.avatar || null,
         createdAt:     post.createdAt,
         modifiedAt:    post.modifiedAt,
         commentsCount: commentsCount?.count ?? 0,
@@ -571,6 +577,30 @@ exports.search42Users = async (req, res) => {
     return res.status(200).json(users);
   }
   catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.searchLocalUsers = async (req, res) => {
+  try {
+    const { query } = req.params;
+
+    if (!query || query.trim() === '') {
+      return res.status(400).json({ error: 'Search cannot be empty.' });
+    }
+
+    const userResponse = await fetch(`${process.env.USER_SERVICE_URL}/search/${encodeURIComponent(query)}`);
+
+    if (!userResponse.ok) {
+      return res.status(503).json({ error: 'User service unavailable.' });
+    }
+
+    const users = await userResponse.json();
+
+    return res.status(200).json(users);
+  }
+  catch (error) {
+    console.error('❌ searchLocalUsers error:', error.message);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };

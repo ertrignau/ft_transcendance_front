@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 13:17:00 by eric              #+#    #+#             */
-/*   Updated: 2026/04/01 16:35:52 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 14:35:56 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,6 +84,22 @@ export default function Login()
 		}
 	}
 
+	// Handle OAuth 42 login
+	const handleAuth42OAuth = async () => {
+		try {
+			console.log('🟠 [LOGIN] Clic sur "Se connecter avec 42"');
+			setLoading(true);
+			console.log('🟠 [LOGIN] Appel authAPI.getAuth42OAuth()');
+			const authUrl = await authAPI.getAuth42OAuth();
+			console.log('🟠 [LOGIN] Redirection vers:', authUrl);
+			window.location.href = authUrl;  // Redirect to 42 OAuth
+		} catch (err) {
+			console.error('❌ [LOGIN] Erreur OAuth 42:', err);
+			setError('Erreur : impossible de rediriger vers 42 OAuth');
+			setLoading(false);
+		}
+	};
+
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 transition-colors">
 			<form
@@ -131,18 +147,19 @@ export default function Login()
 			</div>
 
 				{/* BOUTON 42 OAUTH */}
-				<a
-					href={authAPI.getOAuth42Url()}
-					className="w-full flex items-center justify-center gap-2 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition mb-4 no-underline"
-				>
-					Se connecter avec
-					<img 
-						src="/42_logo.png" 
-						alt="42 Logo" 
-						className="w-6 h-6 object-contain invert brightness-0 invert dark:invert"
-					/>
-				</a>
-				
+			<button
+				type="button"
+				onClick={handleAuth42OAuth}
+				disabled={loading}
+				className="w-full flex items-center justify-center gap-2 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				{loading ? 'Redirection...' : 'Se connecter avec'}
+				<img 
+					src="/42_logo.png" 
+					alt="42 Logo" 
+					className="w-6 h-6 object-contain invert brightness-0 invert dark:invert"
+				/>
+			</button>
 				<p className="text-center text-sm text-gray-600 dark:text-gray-400">
 					Pas encore de compte ?{" "}
 					<Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline">

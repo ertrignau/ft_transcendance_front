@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 14:04:31 by eric              #+#    #+#             */
-/*   Updated: 2026/03/26 16:06:19 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 14:35:57 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ export default function Messages()
 			setSearchLoading(true);
 			try {
 				const results = await usersAPI.searchUsers(userSearchQuery);
-				setSearchResults(results.users || []);
+				setSearchResults(Array.isArray(results) ? results : []);
 			} catch (error) {
 				console.error("Erreur recherche utilisateurs:", error);
 				setSearchResults([]);

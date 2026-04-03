@@ -143,3 +143,32 @@ exports.getOneUserByUsername = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
+exports.searchUsers = async (req, res) => {
+  try {
+    const { query } = req.params;
+
+    if (!query || query.trim() === '') {
+      return res.status(400).json({ error: 'Search query cannot be empty.' });
+    }
+
+    const searchTerm = query.toLowerCase().trim();
+
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { contains: searchTerm, mode: 'insensitive' } },
+          { firstName: { contains: searchTerm, mode: 'insensitive' } },
+          { lastName: { contains: searchTerm, mode: 'insensitive' } },
+        ],
+      },
+      take: 10,
+    });
+
+    return res.status(200).json(users);
+  }
+  catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};

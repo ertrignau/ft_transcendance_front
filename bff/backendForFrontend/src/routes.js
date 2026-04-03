@@ -11,7 +11,7 @@ const upload = require('../src/middleware/multer');
 
 router.get('/register/42', authCtrl.registerRedirectTo42);
 router.get('/register/callback', authCtrl.registerHandleCallback);
-router.post('/register', auth, upload.single('avatar'), authCtrl.classicRegister);
+router.post('/register', upload.single('avatar'), authCtrl.classicRegister);
 router.get('/auth/42', authCtrl.authRedirectTo42);
 router.get('/auth/callback', authCtrl.authHandleCallback);
 router.post('/auth', authCtrl.authClassic);
@@ -28,6 +28,7 @@ router.get('/post/user/:userId', auth, userCtrl.getPostsFromUser);
 router.get('/post/commented/:userId', auth, userCtrl.getPostsCommentedByUser);
 router.get('/post/liked/:userId', auth, userCtrl.getPostsLikedByUser);
 router.get('/media/user/:userId', auth, userCtrl.getMediasFromUser);
+router.get('/search/local/:query', auth, userCtrl.searchLocalUsers);
 router.get('/search42Users/:login', auth, userCtrl.search42Users);
 
 // CONTENT
@@ -53,10 +54,3 @@ router.post('/social/user/:userId', auth, socialCtrl.followUser);
 router.delete('/social/user/:userId', auth, socialCtrl.unfollowUser);
 
 module.exports = router;
-
-
-
-
-
-
-

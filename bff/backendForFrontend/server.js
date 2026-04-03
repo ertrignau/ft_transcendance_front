@@ -3,6 +3,24 @@ const https = require('https');  // ← Changé de http à https
 const fs = require('fs');         // ← Ajouté pour lire les certificats
 const app = require('./app');
 
+// Trust local CA for outbound HTTPS calls and relax hostname check in local dev.
+const path = require('path');
+const caPath = path.join(__dirname, process.env.SSL_CA_PATH || './certs/ca.crt');
+console.log('🔍 [SERVER] Loading CA certificate from:', caPath);
+try {
+  const caContent = fs.readFileSync(caPath);
+  console.log('✅ [SERVER] CA certificate loaded successfully, size:', caContent.length, 'bytes');
+  https.globalAgent = new https.Agent({
+    ca: caContent,
+    rejectUnauthorized: true,
+    checkServerIdentity: () => undefined,
+  });
+  console.log('✅ [SERVER] https.globalAgent configured with CA');
+} catch (err) {
+  console.error('❌ [SERVER] Failed to load CA certificate:', err.message);
+  process.exit(1);
+}
+
 // convertit une valeur string en nombre, doit être > 0
 
 const normalizePort = val => {
@@ -60,6 +78,8 @@ server.on('listening', () => {
   const address = server.address();
   const bind = typeof address === 'string' ? 'pipe ' + address : 'port ' + port;
   console.log('Listening on ' + bind + ' (HTTPS)');  // ← Ajouté "(HTTPS)" pour clarté
+  console.log('🌍 [SERVER] NODE_EXTRA_CA_CERTS:', process.env.NODE_EXTRA_CA_CERTS);
+  console.log('🔒 [SERVER] https.globalAgent.options:', https.globalAgent.options ? 'configured' : 'NOT configured');
 });
 
 server.listen(port);

@@ -9,7 +9,7 @@ router.get('/:authId', authCtrl.getOneAuth);
 router.put('/:authId', authCtrl.modifyOneAuth);
 router.delete('/:authId', authCtrl.deleteOneAuth);
 router.get('/login/:login42', authCtrl.getOneAuthByLogin42);
-router.get('/email/:userEmail', authCtrl.getOneAuthByEmail);
+router.get('/email/:email', authCtrl.getOneAuthByEmail);
 router.get('/user/:userId', authCtrl.getOneAuthByUserId);
 router.put('/user/:userId', authCtrl.modifyOneAuthByUserId);
 router.delete('/user/:userId', authCtrl.deleteOneUser);

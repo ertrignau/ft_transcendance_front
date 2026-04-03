@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 13:11:40 by eric              #+#    #+#             */
-/*   Updated: 2026/03/26 13:38:49 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 14:35:56 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,8 @@ import { useAppContext } from "../../context/AppContext";
 export default function Register()
 {
 	const [username, setUsername] = useState("");
+	const [firstName, setFirstName] = useState("");
+	const [lastName, setLastName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,6 +31,22 @@ export default function Register()
 	const navigate = useNavigate();
 	const { setUser, setTheme } = useAppContext();
 
+	// Handle OAuth 42 registration
+	const handleRegister42OAuth = async () => {
+		try {
+			console.log('🟠 [REGISTER] Clic sur "S\'inscrire avec 42"');
+			setLoading(true);
+			console.log('🟠 [REGISTER] Appel authAPI.getRegister42OAuth()');
+			const authUrl = await authAPI.getRegister42OAuth();
+			console.log('🟠 [REGISTER] Redirection vers:', authUrl);
+			window.location.href = authUrl;  // Redirect to 42 OAuth
+		} catch (err) {
+			console.error('❌ [REGISTER] Erreur OAuth 42:', err);
+			setError('Erreur : impossible de rediriger vers 42 OAuth');
+			setLoading(false);
+		}
+	};
+
 	const handleSubmit = async (e) =>
 	{
 		e.preventDefault();
@@ -37,6 +55,18 @@ export default function Register()
 		// Validation username
 		if (!validateUsername(username)) {
 			setError("Username invalide (3-12 caractères, alphanumériques avec - ou ')");
+			return;
+		}
+
+		// Validation firstName
+		if (!firstName || firstName.length < 2) {
+			setError("Prénom invalide (minimum 2 caractères)");
+			return;
+		}
+
+		// Validation lastName
+		if (!lastName || lastName.length < 2) {
+			setError("Nom invalide (minimum 2 caractères)");
 			return;
 		}
 
@@ -69,23 +99,18 @@ export default function Register()
 		try {
 			const response = await authAPI.register({
 				username,
+				firstName,
+				lastName,
 				email,
 				password,
 			});
 
-			// Stocker les tokens
-			localStorage.setItem('access_token', response.token);
-
-			// Stocker l'utilisateur dans le contexte
-			setUser(response.user);
+			// Register returns 201 with no user data, so we just store empty token
+			// The user will need to login after registration
+			console.log('✅ Inscription réussie, redirection vers login');
 			
-			// Appliquer le theme du user (défault: light)
-			if (response.user.theme) {
-				setTheme(response.user.theme);
-			}
-
-			// Rediriger vers le feed
-			navigate('/feed');
+			// Afficher un message de succes et rediriger
+			navigate('/login', { state: { message: 'Inscription réussie! Veuillez vous connecter.' } });
 		} catch (err) {
 			setError(err.message || "Erreur lors de l'inscription");
 			console.error("Register error:", err);
@@ -119,6 +144,26 @@ export default function Register()
 					required
 					disabled={loading}
 					hint="3-12 caractères, alphanumériques avec - ou '"
+				/>
+				<Input
+					label="Prénom"
+					type="text"
+					value={firstName}
+					onChange={(e) => setFirstName(e.target.value)}
+					placeholder="Votre prénom"
+					required
+					disabled={loading}
+					hint="Minimum 2 caractères"
+				/>
+				<Input
+					label="Nom"
+					type="text"
+					value={lastName}
+					onChange={(e) => setLastName(e.target.value)}
+					placeholder="Votre nom"
+					required
+					disabled={loading}
+					hint="Minimum 2 caractères"
 				/>
 				<Input
 					label="Email"
@@ -189,18 +234,19 @@ export default function Register()
 				</div>
 
 				{/* BOUTON 42 OAUTH */}
-				<a
-					href={authAPI.getOAuth42Url()}
-					className="w-full flex items-center justify-center gap-2 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition mb-4 no-underline"
-				>
-					S'inscrire avec
-					<img 
-						src="/42_logo.png" 
-						alt="42 Logo" 
-						className="w-6 h-6 object-contain invert brightness-0 invert dark:invert"
-					/>
-				</a>
-
+			<button
+				type="button"
+				onClick={handleRegister42OAuth}
+				disabled={loading}
+				className="w-full flex items-center justify-center gap-2 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				{loading ? 'Redirection...' : 'S\'inscrire avec'}
+				<img 
+					src="/42_logo.png" 
+					alt="42 Logo" 
+					className="w-6 h-6 object-contain invert brightness-0 invert dark:invert"
+				/>
+			</button>
 				<p className="text-center text-sm text-gray-600 dark:text-gray-400">
 					Déjà un compte ?{" "}
 					<Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline">

@@ -6,14 +6,14 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 14:07:20 by eric              #+#    #+#             */
-/*   Updated: 2026/03/27 16:26:30 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 14:35:57 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../context/AppContext";
-import { authAPI, uploadAPI } from "../../services/api";
+import { authAPI, uploadAPI, userAPI } from "../../services/api";
 import { useAvatar } from "../../hooks/useAvatar";
 import PostCard from "../../components/PostCard";
 import CreatePostForm from "../../components/CreatePostForm";
@@ -86,38 +86,29 @@ export default function Profile()
     };
 
     const handleAvatarUpload = async () => {
-        if (!selectedFile) return;
+        if (!selectedFile || !user?.id) return;
 
         setUploading(true);
         setUploadError(null);
 
         try {
-            // Convertir le fichier en base64
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const base64Data = e.target.result;
-                    
-                    // Uploader via API (retourne juste le nom du fichier)
-                    const response = await uploadAPI.uploadAvatar(base64Data);
-                    
-                    // Mettre à jour l'avatar de l'utilisateur avec le nom du fichier
-                    setUser({ ...user, avatar: response.avatar });
-                    
-                    // Fermer le modal et réinitialiser
-                    setShowAvatarModal(false);
-                    setSelectedFile(null);
-                } catch (err) {
-                    console.error('Erreur upload avatar:', err);
-                    setUploadError(err.message || t('profile.uploadError'));
-                } finally {
-                    setUploading(false);
-                }
-            };
-            reader.readAsDataURL(selectedFile);
+            console.log('🔵 [PROFILE] Uploading avatar for user:', user.id);
+            
+            // Call updateProfile with the avatar file
+            const response = await userAPI.updateProfile(user.id, {}, selectedFile);
+            
+            console.log('🟢 [PROFILE] Avatar uploaded successfully:', response);
+            
+            // Update the user's avatar
+            setUser({ ...user, avatar: response.avatar || selectedFile.name });
+            
+            // Close the modal and reset
+            setShowAvatarModal(false);
+            setSelectedFile(null);
         } catch (err) {
-            console.error('Erreur conversion fichier:', err);
-            setUploadError(t('profile.uploadError'));
+            console.error('❌ Avatar upload error:', err);
+            setUploadError(err.message || t('profile.uploadError'));
+        } finally {
             setUploading(false);
         }
     };

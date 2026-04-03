@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 exports.getPosts = async (req, res) => {
   try {
     const { date, limit } = req.query;
@@ -19,17 +21,33 @@ exports.getPosts = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    const countsResponses = await Promise.all(
+    // Fetch counts + user info for each post
+    const enrichedResponses = await Promise.all(
       posts.map(post =>
         Promise.all([
           fetch(`${process.env.CONTENT_SERVICE_URL}/comment/count/post/${post.id}`).then(r => r.json()),
           fetch(`${process.env.CONTENT_SERVICE_URL}/like/count/post/${post.id}`).then(r => r.json()),
+          fetch(`${process.env.USER_SERVICE_URL}/${post.userId}`)
+            .then(r => {
+              if (!r.ok) {
+                console.warn(`⚠️ [BFF-CONTENT] User ${post.userId} not found (${r.status})`);
+                return null;
+              }
+              return r.json();
+            })
+            .catch(err => {
+              console.error(`❌ [BFF-CONTENT] Error fetching user ${post.userId}:`, err.message);
+              return null;
+            }),
         ])
       )
     );
 
     const result = posts.map((post, index) => {
-      const [commentsCount, likesCount] = countsResponses[index];
+      const [commentsCount, likesCount, userData] = enrichedResponses[index];
+      const author = userData?.username || userData?.firstName || 'User';
+      const avatar = userData?.avatar || null;
+      console.log(`🔵 [BFF-CONTENT] Post ${post.id}: userData=${!!userData}, author=${author}, avatar=${avatar}`);
 
       return {
         id: post.id,
@@ -37,6 +55,8 @@ exports.getPosts = async (req, res) => {
         image: post.image ?? null,
         pdf: post.pdf ?? null,
         userId: post.userId,
+        author,
+        avatar,
         createdAt: post.createdAt,
         modifiedAt: post.modifiedAt,
         commentsCount: commentsCount?.count ?? 0,
@@ -54,6 +74,11 @@ exports.getPosts = async (req, res) => {
 
 exports.createOnePost = async (req, res) => {
   try {
+    console.log('🔵 [BFF-CONTENT] createOnePost called');
+    console.log('🔵 [BFF-CONTENT] req.body:', req.body);
+    console.log('🔵 [BFF-CONTENT] req.file:', req.file);
+    console.log('🔵 [BFF-CONTENT] req.userId:', req.userId);
+    
     let post = {};
     if (req.body.post) {
       try {
@@ -78,6 +103,13 @@ exports.createOnePost = async (req, res) => {
       ? `${process.env.BFF_URL}/uploads/pdfs/${req.file.filename}`
       : null;
 
+    console.log('🔵 [BFF-CONTENT] Sending to CONTENT_SERVICE:', {
+      userId: req.userId,
+      content: content ?? null,
+      image,
+      pdf,
+    });
+
     const postResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/post/`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -90,10 +122,34 @@ exports.createOnePost = async (req, res) => {
     });
 
     if (!postResponse.ok) {
+      const errorText = await postResponse.text();
+      console.error('❌ [BFF-CONTENT] CONTENT_SERVICE error:', postResponse.status, errorText.substring(0, 500));
       return res.status(503).json({ error: 'Content service unavailable.' });
     }
 
-    return res.sendStatus(201);
+    const createdPost = await postResponse.json();
+    
+    // Fetch user data to include in response
+    const userUrl = `${process.env.USER_SERVICE_URL}/${req.userId}`;
+    console.log('🔵 [BFF-CONTENT] Fetching user from:', userUrl);
+    const userResponse = await fetch(userUrl);
+    const userData = userResponse.ok ? await userResponse.json() : null;
+    console.log('🔵 [BFF-CONTENT] User data:', userData);
+    
+    // Retourner les données du post créé avec infos utilisateur
+    return res.status(201).json({
+      id: createdPost.id || crypto.randomUUID(),
+      userId: req.userId,
+      author: userData?.username || userData?.firstName || 'User',
+      avatar: userData?.avatar || null,
+      content: content ?? null,
+      image,
+      pdf,
+      createdAt: createdPost.createdAt || new Date().toISOString(),
+      modifiedAt: createdPost.modifiedAt || new Date().toISOString(),
+      commentsCount: createdPost.commentsCount || 0,
+      likesCount: createdPost.likesCount || 0
+    });
 
   }
   catch (error) {
@@ -121,12 +177,18 @@ exports.getOnePost = async (req, res) => {
 
     const post = await postResponse.json();
 
+    // Fetch user data
+    const userResponse = await fetch(`${process.env.USER_SERVICE_URL}/${post.userId}`);
+    const userData = userResponse.ok ? await userResponse.json() : null;
+
     return res.status(200).json({
       id: post.id,
       content: post.content ?? null,
       image: post.image ?? null,
       pdf: post.pdf ?? null,
       userId: post.userId,
+      author: userData?.username || userData?.firstName || 'User',
+      avatar: userData?.avatar || null,
       createdAt: post.createdAt,
       modifiedAt: post.modifiedAt,
       commentsCount: commentsCount?.count ?? 0,
@@ -227,7 +289,7 @@ exports.deleteOnePost = async (req, res) => {
       return res.status(503).json({ error: 'Content service unavailable.' });
     }
 
-    return res.sendStatus(200);
+    return res.json({ success: true });
 
   }
   catch (error) {
@@ -298,7 +360,8 @@ exports.createOneComment = async (req, res) => {
       return res.status(503).json({ error: 'Content service unavailable.' });
     }
 
-    return res.sendStatus(201);
+    const createdComment = await commentResponse.json();
+    return res.status(201).json(createdComment);
 
   }
   catch (error) {
@@ -379,7 +442,7 @@ exports.deleteOneComment = async (req, res) => {
       return res.status(503).json({ error: 'Content service unavailable.' });
     }
 
-    return res.sendStatus(200);
+    return res.json({ success: true });
 
   }
   catch (error) {
@@ -447,7 +510,8 @@ exports.likeOnePost = async (req, res) => {
       return res.status(503).json({ error: 'Content service unavailable.' });
     }
 
-    return res.sendStatus(201);
+    const createdLike = await likeResponse.json();
+    return res.status(201).json(createdLike);
   }
   catch (error) {
     return res.status(500).json({ error: 'Internal server error.' });
@@ -482,7 +546,7 @@ exports.deleteLikeFromPost = async (req, res) => {
       return res.status(503).json({ error: 'Content service unavailable.' });
     }
 
-    return res.sendStatus(200);
+    return res.json({ success: true });
   }
   catch (error) {
     return res.status(500).json({ error: 'Internal server error.' });

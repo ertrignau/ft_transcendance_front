@@ -9,10 +9,11 @@ const validateAuthorization = (authorization) => {
     return false;
   if (!/^Bearer\s\S+$/.test(authorization))
     return false;
+  console.log('NOT ERROR HERE');
   return true;
 };
 
-exports.classicAuth = async (req, res, next) => {
+module.exports = async (req, res, next) => {
   const authorization = req.headers.authorization;
 
   if (!validateAuthorization(authorization)) {
@@ -29,7 +30,7 @@ exports.classicAuth = async (req, res, next) => {
     return res.status(401).json({ error: 'Invalid or expired token.' });
   }
 
-  const response = await fetch(`${process.env.AUTH_SERVICE_URL}/id/${decoded.userId}`);
+  const response = await fetch(`${process.env.AUTH_SERVICE_URL}/user/${req.userId}`);
   if (!response.ok) {
     return res.status(401).json({ error: 'User not found.' });
   }

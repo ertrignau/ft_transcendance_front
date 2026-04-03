@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/28 10:35:58 by eric              #+#    #+#             */
-/*   Updated: 2026/04/01 16:32:15 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 14:35:56 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 // CONFIG
 // ===================================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:3005';
 
 // ===================================
 // HELPER POUR LES REQUETES AUTH
@@ -38,8 +38,8 @@ const fetchWithAuth = async (endpoint, options = {}) => {
 	}
 
 	const url = `${API_BASE_URL}${endpoint}`;
-	console.log('📡 Appel API:', url);
-	console.log('🔑 Token:', token ? 'Présent' : 'Absent');
+	console.log('📡 [FETCHAUTH] Appel API:', url, 'Méthode:', options.method || 'GET');
+	console.log('🔑 [FETCHAUTH] Token:', token ? 'Présent (longueur: ' + token.length + ')' : 'Absent');
 
 	// Faire la requete
 	const response = await fetch(url, {
@@ -47,14 +47,16 @@ const fetchWithAuth = async (endpoint, options = {}) => {
 		headers,
 	});
 	
-	console.log('📥 Réponse status:', response.status);
+	console.log('📥 [FETCHAUTH] Réponse status:', response.status);
 	
 	// Si token perime ou invalide on redirige vers login
 	if (response.status === 401) {
+		console.warn('⚠️ [FETCHAUTH] Token expiré ou invalide (401)');
 		const currentPath = window.location.pathname;
 		const publicPaths = ['/login', '/register', '/callback', '/register/42'];
 		
 		if (!publicPaths.includes(currentPath)) {
+			console.log('🔵 [FETCHAUTH] Rédirection vers /login');
 			localStorage.removeItem('access_token');
 			localStorage.removeItem('refresh_token');
 			window.location.href = '/login';
@@ -67,13 +69,56 @@ const fetchWithAuth = async (endpoint, options = {}) => {
 		const error = await response.json().catch(() => ({
 			error: 'Une erreur est survenue'
 		}));
-		console.error('❌ Erreur API:', error);
+		console.error('❌ [FETCHAUTH] Erreur API:', error);
 		const err = new Error(error.error || error.message || error.detail || 'Erreur réseau');
 		err.status = response.status;
 		throw err;
 	}
 
-	return response.json();
+	const data = await response.json();
+	console.log('📥 [FETCHAUTH] Réponse reçue');
+	return data;
+}
+
+// ===================================
+// HELPER POUR LES REQUETES PUBLIQUES (sans token)
+// ===================================
+
+const fetchPublic = async (endpoint, options = {}) => {
+	const headers = {
+		...options.headers,	
+	};
+	
+	// Ne pas forcer Content-Type si FormData
+	if (!(options.body instanceof FormData)) {
+		headers['Content-Type'] = 'application/json';
+	}
+
+	const url = `${API_BASE_URL}${endpoint}`;
+	console.log('📡 [FETCHPUBLIC] Appel API:', url, 'Méthode:', options.method || 'GET');
+
+	// Faire la requete (sans token)
+	const response = await fetch(url, {
+		...options,
+		headers,
+	});
+	
+	console.log('📥 [FETCHPUBLIC] Réponse status:', response.status);
+
+	// Erreur HTTP
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({
+			error: 'Une erreur est survenue'
+		}));
+		console.error('❌ [FETCHPUBLIC] Erreur:', error);
+		const err = new Error(error.error || error.message || error.detail || 'Erreur réseau');
+		err.status = response.status;
+		throw err;
+	}
+
+	const data = await response.json();
+	console.log('📥 [FETCHPUBLIC] Réponse reçue');
+	return data;
 }
 
 // ===================================
@@ -82,16 +127,26 @@ const fetchWithAuth = async (endpoint, options = {}) => {
 
 export const authAPI = {
 	login: async (email, password) => {
-		return fetchWithAuth('/auth/', {
+		const response = await fetchWithAuth('/auth', {
 			method: 'POST',
 			body: JSON.stringify({ email, password }),
 		});
+		// BFF returns {user, token} - normalize response
+		return {
+			access_token: response.token,
+			token: response.token,
+			id: response.user?.id,
+			userId: response.user?.id,
+			user: response.user,
+		};
 	},
 
-	register: async (username, firstName, lastName, email, password, avatarFile = null) => {
+	register: async (userData, is42 = false) => {
+		const { username, firstName, lastName, email, password, avatarFile = null, avatarUrl = null } = userData;
 		const formData = new FormData();
 		formData.append('user', JSON.stringify({
-			username, firstName, lastName, email, password, is42: false,
+			username, firstName, lastName, email, password, is42,
+			avatar: avatarUrl || null, // Pour register42
 		}));
 		if (avatarFile) formData.append('avatar', avatarFile);
 
@@ -103,17 +158,35 @@ export const authAPI = {
 		});
 
 		if (!response.ok) {
-			const error = await response.json();
+			const error = await response.json().catch(() => ({}));
 			throw new Error(error.error || 'Erreur lors de l\'inscription');
 		}
-		return response.json();
+		// BFF returns 201 with no JSON, so return empty object
+		return { success: true, message: '201 Created' };
 	},
 
 	getRegister42Data: async () => {
-		return fetchWithAuth('/register/42');
+		return fetchPublic('/register/42');
 	},
 
-	register42: async (username, firstName, lastName, email, avatarUrl) => {
+	getRegister42OAuth: async () => {
+		// Fetch the OAuth URL from BFF without token (public endpoint)
+		console.log('🔵 [REGISTER42] Appel /register/42 pour obtenir l\'URL OAuth 42');
+		const response = await fetchPublic('/register/42');
+		console.log('🟢 [REGISTER42] URL OAuth reçue:', response.authUrl);
+		return response.authUrl;  // Returns the full OAuth authorize URL
+	},
+
+	getAuth42OAuth: async () => {
+		// Fetch the OAuth URL from BFF without token (public endpoint)
+		console.log('🔵 [AUTH42] Appel /auth/42 pour obtenir l\'URL OAuth 42');
+		const response = await fetchPublic('/auth/42');
+		console.log('🟢 [AUTH42] URL OAuth reçue:', response.authUrl);
+		return response.authUrl;  // Returns the full OAuth authorize URL
+	},
+
+	register42: async (userData) => {
+		const { username, firstName, lastName, email, avatarUrl } = userData;
 		const formData = new FormData();
 		formData.append('user', JSON.stringify({
 			username, firstName, lastName, email, avatar: avatarUrl, is42: true,
@@ -127,20 +200,31 @@ export const authAPI = {
 		});
 
 		if (!response.ok) {
-			const error = await response.json();
+			const error = await response.json().catch(() => ({}));
 			throw new Error(error.error || 'Erreur lors de l\'inscription 42');
 		}
-		return response.json();
+		return { success: true, message: '201 Created' };
 	},
 
-	getOAuth42Url: () => `${API_BASE_URL}/auth/42`,
-
 	handleAuth42Callback: async (code) => {
-		return fetchWithAuth(`/auth/callback?code=${code}`);
+		const response = await fetchWithAuth(`/auth/callback?code=${code}`);
+		// BFF returns {user, token} - normalize to match other endpoints
+		return {
+			access_token: response.token,
+			token: response.token,
+			id: response.user?.id,
+			userId: response.user?.id,
+			user: response.user,
+		};
+	},
+
+	callback42: async (code) => {
+		// Alias for backward compatibility
+		return authAPI.handleAuth42Callback(code);
 	},
 
 	changePassword: async (password, newPassword) => {
-		return fetchWithAuth('/auth/', {
+		return fetchWithAuth('/auth', {
 			method: 'PUT',
 			body: JSON.stringify({ password, newPassword }),
 		});
@@ -224,7 +308,7 @@ export const postsAPI = {
 
 	createPost: async (content, mediaFile = null) => {
 		const formData = new FormData();
-		formData.append('content', content);
+		formData.append('post', JSON.stringify({ content }));
 		if (mediaFile) formData.append('media', mediaFile);
 
 		const response = await fetch(`${API_BASE_URL}/post`, {
@@ -377,6 +461,12 @@ export const socialAPI = {
 export const searchAPI = {
 	search42Users: async (query) => userAPI.search42Users(query),
 	searchUsers: async (query) => userAPI.search42Users(query),
+	searchLocalUsers: async (query) => {
+		console.log('🔵 [SEARCHAPI] Searching local users:', query);
+		const result = await fetchWithAuth(`/search/local/${encodeURIComponent(query)}`);
+		console.log('🟢 [SEARCHAPI] Local users found:', result.length);
+		return result;
+	},
 };
 
 // ===================================
