@@ -16,6 +16,20 @@ import { postsAPI, notificationsAPI, likesAPI } from '../services/api';
 
 const AppContext = createContext();
 
+// Helper pour normaliser les données utilisateur avec _count
+const normalizeUserData = (userData) => {
+    if (!userData) return null;
+    
+    return {
+        ...userData,
+        _count: {
+            followers: userData?._count?.followers ?? userData?.followersCount ?? 0,
+            following: userData?._count?.following ?? userData?.followingCount ?? 0,
+            posts: userData?._count?.posts ?? userData?.postsCount ?? 0,
+        }
+    };
+};
+
 export const useAppContext = () => {
     const context = useContext(AppContext);
     if (!context) {
@@ -28,10 +42,21 @@ export const AppProvider = ({ children }) => {
     const { i18n, t } = useTranslation();
     
     // User data
-    const [user, setUser] = useState(() => {
+    const [user, setUserState] = useState(() => {
         const saved = localStorage.getItem('user');
-        return saved ? JSON.parse(saved) : null;
+        return saved ? normalizeUserData(JSON.parse(saved)) : null;
     });
+
+    // Wrapper autour de setUser pour normaliser les données
+    const setUser = useCallback((userData) => {
+        const normalized = normalizeUserData(userData);
+        setUserState(normalized);
+        if (normalized) {
+            localStorage.setItem('user', JSON.stringify(normalized));
+        } else {
+            localStorage.removeItem('user');
+        }
+    }, []);
 
     // Posts (NE PLUS charger depuis localStorage au démarrage)
     const [posts, setPosts] = useState(() => {
@@ -117,11 +142,14 @@ export const AppProvider = ({ children }) => {
                     author: p.author || p.user?.username || p.user?.firstName || 'Anonyme',
                     avatar: p.avatar || p.user?.avatar || `https://ui-avatars.com/api/?name=${p.author || p.user?.firstName || 'User'}&background=3b82f6&color=fff`,
                     content: p.content,
-                    likes: p._count?.likes || p.likes || 0,
+                    image: p.image || null,
+                    pdf: p.pdf || null,
+                    likes: p.likesCount || p._count?.likes || p.likes || 0,
                     liked: likedPostIds.includes(p.id),
                     date: new Date(p.createdAt).toLocaleDateString('fr-FR'),
                     userId: p.userId,
                     createdAt: p.createdAt,
+                    isEdited: p.isEdited || false,
                 })) || [];
                 
                 console.log("✅ Posts chargés:", formattedPosts.length);
@@ -159,11 +187,14 @@ export const AppProvider = ({ children }) => {
                 author: p.author || p.user?.username || p.user?.firstName || 'Anonyme',
                 avatar: p.avatar || p.user?.avatar || `https://ui-avatars.com/api/?name=${p.author || p.user?.firstName || 'User'}&background=3b82f6&color=fff`,
                 content: p.content,
-                likes: p._count?.likes || 0,
+                image: p.image || null,
+                pdf: p.pdf || null,
+                likes: p.likesCount || 0,
                 liked: likedPostIds.includes(p.id),
                 date: new Date(p.createdAt).toLocaleDateString('fr-FR'),
                 userId: p.userId,
                 createdAt: p.createdAt,
+                isEdited: p.isEdited || false,
             })) || [];
             
             console.log("✅ Feed actualisé:", formattedPosts.length);
@@ -261,20 +292,24 @@ export const AppProvider = ({ children }) => {
         console.log("📝 Ajout d'un post par:", user.username || user.firstName);
         
         try {
-            // Appeler l'API pour créer le post dans la BDD
-            const createdPost = await postsAPI.createPost(post.content);
+            // Passer le contenu ET les fichiers à l'API
+            const firstFile = post.files && post.files.length > 0 ? post.files[0] : null;
+            const createdPost = await postsAPI.createPost(post.content, firstFile);
             
             // Formatter le post pour l'affichage
             const newPost = {
-                id: createdPost.id, // Utiliser l'ID de la BDD
+                id: createdPost.id,
                 author: createdPost.author || user?.username || user?.firstName || 'Vous',
                 avatar: createdPost.avatar || user?.avatar || `https://ui-avatars.com/api/?name=${createdPost.author || user?.firstName || 'User'}&background=3b82f6&color=fff`,
                 content: createdPost.content,
-                likes: createdPost._count?.likes || createdPost.likesCount || 0,
+                image: createdPost.image || null,
+                pdf: createdPost.pdf || null,
+                likes: createdPost.likesCount || 0,
                 liked: false,
                 date: 'À l\'instant',
                 userId: user?.id,
                 createdAt: createdPost.createdAt,
+                isEdited: false,
             };
             
             console.log("✅ Post créé dans la BDD:", newPost);
@@ -300,9 +335,9 @@ export const AppProvider = ({ children }) => {
 
         try {
             if (post.liked) {
-                await postsAPI.unlikePost(postId);
+                await likesAPI.unlikePost(postId);
             } else {
-                await postsAPI.likePost(postId);
+                await likesAPI.likePost(postId);
             }
         } catch (error) {
             console.error("❌ Erreur like:", error);

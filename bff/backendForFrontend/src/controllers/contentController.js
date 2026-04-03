@@ -103,9 +103,10 @@ exports.createOnePost = async (req, res) => {
       ? `${process.env.BFF_URL}/uploads/pdfs/${req.file.filename}`
       : null;
 
-    console.log('🔵 [BFF-CONTENT] Sending to CONTENT_SERVICE:', {
-      userId: req.userId,
-      content: content ?? null,
+    console.log('🔵 [BFF-CONTENT] File uploaded:', {
+      filename: req.file?.filename,
+      mimetype: req.file?.mimetype,
+      path: req.file?.path,
       image,
       pdf,
     });
@@ -153,7 +154,8 @@ exports.createOnePost = async (req, res) => {
 
   }
   catch (error) {
-    return res.status(500).json({ error: 'Internal server error.' });
+    console.error('❌ [BFF-CONTENT] createOnePost error:', error.message, error.stack);
+    return res.status(500).json({ error: 'Internal server error.', details: error.message });
   }
 };
 
@@ -319,7 +321,31 @@ exports.getCommentsFromPost = async (req, res) => {
 
     const comments = await commentsResponse.json();
 
-    return res.status(200).json(comments);
+    // 🔵 Enrichir chaque commentaire avec les données d'auteur depuis USER_SERVICE
+    const enrichedComments = await Promise.all(
+      comments.map(async (comment) => {
+        try {
+          const userResponse = await fetch(`${process.env.USER_SERVICE_URL}/${comment.userId}`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            return {
+              ...comment,
+              user: {
+                username: userData.firstName && userData.lastName 
+                  ? `${userData.firstName} ${userData.lastName}` 
+                  : userData.email,
+                avatar: userData.avatar
+              }
+            };
+          }
+        } catch (err) {
+          console.log('🔵 [CONTENT] Erreur enrichissement commentaire userId:', comment.userId);
+        }
+        return comment;
+      })
+    );
+
+    return res.status(200).json(enrichedComments);
 
   }
   catch (error) {
@@ -361,6 +387,27 @@ exports.createOneComment = async (req, res) => {
     }
 
     const createdComment = await commentResponse.json();
+    
+    // 🔵 Enrichir avec les données d'auteur depuis USER_SERVICE
+    try {
+      const userResponse = await fetch(`${process.env.USER_SERVICE_URL}/${req.userId}`);
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        const enrichedComment = {
+          ...createdComment,
+          user: {
+            username: userData.firstName && userData.lastName 
+              ? `${userData.firstName} ${userData.lastName}` 
+              : userData.email,
+            avatar: userData.avatar
+          }
+        };
+        return res.status(201).json(enrichedComment);
+      }
+    } catch (err) {
+      console.log('🔵 [COMMENT] Erreur enrichissement userId:', req.userId);
+    }
+    
     return res.status(201).json(createdComment);
 
   }
@@ -404,10 +451,36 @@ exports.modifyOneComment = async (req, res) => {
       return res.status(503).json({ error: 'Content service unavailable.' });
     }
 
-    return res.sendStatus(200);
+    const updatedComment = await updateResponse.json();
+    console.log('🔵 [COMMENT-UPDATE] updatedComment:', updatedComment);
+    
+    // 🔵 Enrichir avec les données d'auteur depuis USER_SERVICE
+    try {
+      const userResponse = await fetch(`${process.env.USER_SERVICE_URL}/${comment.userId}`);
+      console.log('🔵 [COMMENT-UPDATE] User fetch status:', userResponse.status);
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        const enrichedComment = {
+          ...updatedComment,
+          user: {
+            username: userData.firstName && userData.lastName 
+              ? `${userData.firstName} ${userData.lastName}` 
+              : userData.email,
+            avatar: userData.avatar
+          }
+        };
+        console.log('🔵 [COMMENT-UPDATE] enrichedComment:', enrichedComment);
+        return res.status(200).json(enrichedComment);
+      }
+    } catch (err) {
+      console.log('🔵 [COMMENT-UPDATE] Erreur enrichissement:', err.message);
+    }
+    
+    return res.status(200).json(updatedComment);
 
   }
   catch (error) {
+    console.error('❌ [COMMENT-UPDATE] Error:', error);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };

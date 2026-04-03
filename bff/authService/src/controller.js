@@ -4,8 +4,9 @@ const { v4: uuidv4 } = require('uuid'); // : permet de renommer la fonction v4 d
 exports.createOneAuth = async (req, res) => {
   try {
     const { email, password, login42, userId } = req.body;
+    const normalizedEmail = email.toLowerCase();  // Normalize email to lowercase
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
@@ -13,7 +14,7 @@ exports.createOneAuth = async (req, res) => {
       data: {
         id : uuidv4(),
         userId,
-        email,
+        email: normalizedEmail,
         login42: login42 ?? null,
         password,
       },
@@ -88,7 +89,7 @@ exports.modifyOneAuth = async (req, res) => {
     await prisma.auth.update({
       where: { id: authId },
       data: {
-        ...(email    && { email }),
+        ...(email    && { email: email.toLowerCase() }),
         ...(password && { password }),
         ...(login42  && { login42 }),
       },
@@ -150,9 +151,10 @@ exports.getOneAuthByLogin42 = async (req, res) => {
 exports.getOneAuthByEmail = async (req, res) => {
   try {
     const { email } = req.params;
+    const normalizedEmail = email.toLowerCase();  // Normalize to lowercase
 
     const auth = await prisma.auth.findUnique({
-      where: { email: email },
+      where: { email: normalizedEmail },
     });
 
     if (!auth) {
@@ -194,7 +196,7 @@ exports.modifyOneAuthByUserId = async (req, res) => {
     await prisma.auth.update({
       where: { userId },
       data: {
-        ...(email    && { email }),
+        ...(email    && { email: email.toLowerCase() }),
         ...(password && { password }),
         ...(login42  && { login42 }),
       },

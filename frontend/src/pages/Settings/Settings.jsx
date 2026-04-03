@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/09 11:00:00 by eric              #+#    #+#             */
-/*   Updated: 2026/03/26 13:40:49 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 17:29:18 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -292,12 +292,12 @@ export default function Settings() {
                 <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <Button
                         onClick={handleRestore42Profile}
-                        disabled={loading || !user?.intraId}
-                        title={!user?.intraId ? 'Cette option n\'est disponible que pour les comptes inscrits via 42' : ''}
+                        disabled={loading || !user?.login42}
+                        title={!user?.login42 ? 'Cette option n\'est disponible que pour les comptes inscrits via 42' : ''}
                     >
                         {loading ? 'Restauration...' : 'Restaurer le profil 42'}
                     </Button>
-                    {!user?.intraId && (
+                    {!user?.login42 && (
                         <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-1">
                             <FiAlertTriangle className="w-4 h-4" />
                             <span>Disponible uniquement pour les comptes inscrits via 42</span>

@@ -26,9 +26,12 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedMimetypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-  if (!allowedMimetypes.includes(file.mimetype)) {
-    return cb(new Error('Invalid file type.'), false);
+  // Accepter tous les types d'images et les PDFs
+  const isImage = file.mimetype.startsWith('image/');
+  const isPdf = file.mimetype === 'application/pdf';
+  
+  if (!isImage && !isPdf) {
+    return cb(new Error(`Invalid file type. Got: ${file.mimetype}`), false);
   }
 
   const nameRegex = /^[\S ]+$/;

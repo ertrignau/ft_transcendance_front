@@ -136,7 +136,8 @@ exports.classicRegister = async (req, res) => {
     }
 
     const { username, firstName, lastName, email, password, avatar: avatar42, is42 } = user;
-    console.log('✓ REGISTER: User data extracted - username:', username, 'email:', email);
+    const normalizedEmail = email.toLowerCase();  // Normalize email to lowercase
+    console.log('✓ REGISTER: User data extracted - username:', username, 'email:', normalizedEmail);
 
     const login42 = is42 ? username : null;
 
@@ -155,12 +156,12 @@ exports.classicRegister = async (req, res) => {
     }
 
     console.log('📡 REGISTER: Checking email in AUTH_SERVICE...');
-    console.log('   URL:', `${process.env.AUTH_SERVICE_URL}/email/${email}`);
+    console.log('   URL:', `${process.env.AUTH_SERVICE_URL}/email/${normalizedEmail}`);
     console.log('   Environment - AUTH_SERVICE_URL:', process.env.AUTH_SERVICE_URL);
     console.log('   NODE_EXTRA_CA_CERTS:', process.env.NODE_EXTRA_CA_CERTS);
     let authCheckResponse;
     try {
-      authCheckResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/email/${email}`, { agent: httpsAgent });
+      authCheckResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/email/${normalizedEmail}`, { agent: httpsAgent });
       console.log('✅ REGISTER: AUTH_SERVICE responded with status:', authCheckResponse.status);
     } catch (err) {
       console.error('❌ REGISTER: AUTH_SERVICE fetch failed!');
@@ -252,7 +253,7 @@ exports.classicRegister = async (req, res) => {
         },
         body: JSON.stringify({
           userId,
-          email,
+          email: normalizedEmail,
           password: hashedPassword,
           login42
         }),
@@ -410,7 +411,7 @@ exports.authHandleCallback = async (req, res) => {
       fetch(`${process.env.USER_SERVICE_URL}/${authData.userId}`),
       fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${authData.userId}`),
       fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${authData.userId}`),
-      fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/${authData.userId}`),
+      fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/user/${authData.userId}`),
     ]);
 
     // If user doesn't exist in USER_SERVICE, create it automatically
@@ -547,25 +548,51 @@ exports.authHandleCallback = async (req, res) => {
 
 exports.authClassic = async (req, res) => {
   if (!req.body.email) {
-    return res.status(400).json({ error: 'Email is required.' });
+    return res.status(400).json({ error: 'Email or username is required.' });
   }
 
   if (!req.body.password) {
     return res.status(400).json({ error: 'Password is required.' });
   }
   
-  const authResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/email/${req.body.email}`);
+  const loginInput = req.body.email;  // Can be email or username
+  const normalizedEmail = loginInput.toLowerCase();
+  
+  // First try to find by email
+  let authResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/email/${normalizedEmail}`);
+  let authData;
+  
+  // If not found by email, try to find by username
+  if (authResponse.status === 404) {
+    console.log('Auth not found by email, trying by username...');
+    // Try to find user by username first
+    try {
+      const userResponse = await fetch(`${process.env.USER_SERVICE_URL}/username/${loginInput}`);
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        // Now fetch auth by userId
+        authResponse = await fetch(`${process.env.AUTH_SERVICE_URL}/user/${userData.id}`);
+      } else {
+        console.log('User not found by username either, status:', userResponse.status);
+      }
+    } catch (err) {
+      console.error('Error searching by username:', err);
+    }
+  }
 
-  if (authResponse.status === 404)
+  if (!authResponse || authResponse.status === 404)
     return res.status(404).json({ error: 'No account found.' });
   
   if (!authResponse.ok) {
     return res.status(503).json({ error: 'Auth service unavailable, please try again later.' });
   }
 
+  // Parse the auth data from authService
+  authData = await authResponse.json();
+
   let validPassword;
   try {
-    validPassword = await bcrypt.compare(req.body.password, user.password);
+    validPassword = await bcrypt.compare(req.body.password, authData.password);
   }
   catch (error) {
     return res.status(500).json({ error: 'Internal server error.' });
@@ -575,19 +602,33 @@ exports.authClassic = async (req, res) => {
     return res.status(401).json({ error: 'Invalid password.' });
   }
 
-  const [userResponse, friendsCount, followersCount, postsCount] = await Promise.all([
-    fetch(`${process.env.USER_SERVICE_URL}/${authResponse.userId}`).then(r => r.json()),
-    fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${authResponse.userId}`).then(r => r.json()),
-    fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${authResponse.userId}`).then(r => r.json()),
-    fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/${authResponse.userId}`).then(r => r.json()),
-  ]).catch(() => {
+  let userResponse, friendsCount, followersCount, postsCount;
+  try {
+    const [userResp, friendsResp, followersResp, postsResp] = await Promise.all([
+      fetch(`${process.env.USER_SERVICE_URL}/${authData.userId}`),
+      fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${authData.userId}`),
+      fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${authData.userId}`),
+      fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/user/${authData.userId}`),
+    ]);
+
+    if (!userResp.ok || !friendsResp.ok || !followersResp.ok || !postsResp.ok) {
+      console.error('Service error - User:', userResp.status, 'Friends:', friendsResp.status, 'Followers:', followersResp.status, 'Posts:', postsResp.status);
+      return res.status(503).json({ error: 'Service unavailable.' });
+    }
+
+    userResponse = await userResp.json();
+    friendsCount = await friendsResp.json();
+    followersCount = await followersResp.json();
+    postsCount = await postsResp.json();
+  } catch (err) {
+    console.error('Error fetching user data:', err);
     return res.status(503).json({ error: 'Service unavailable.' });
-  });
+  }
 
   const user = {  
-      "id": authResponse.userId,                        
-      "username": authResponse.login42,
-      "email": authResponse.email,
+      "id": authData.userId,                        
+      "username": userResponse.username,
+      "email": authData.email,
       "firstName": userResponse.firstName,
       "lastName": userResponse.lastName,
       "bio": userResponse.bio,
@@ -596,13 +637,15 @@ exports.authClassic = async (req, res) => {
       "postsCount": postsCount,
       "followersCount": followersCount,
       "followingCount": friendsCount,
-      "createdAt": userResponse.createdAt
+      "createdAt": userResponse.createdAt,
+      "intraId": null,
+      "login42": authData.login42 || null
   };
 
   let token;
   try {
     token = jwt.sign(
-      { userId: auth.userId },
+      { userId: authData.userId },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );

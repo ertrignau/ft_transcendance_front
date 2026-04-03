@@ -95,12 +95,14 @@ export default function Feed()
                     author: p.user?.username || p.user?.firstName || 'Anonyme',
                     avatar: p.user?.avatar || `https://ui-avatars.com/api/?name=${p.user?.firstName || 'User'}&background=3b82f6&color=fff`,
                     content: p.content,
-                    likes: p._count?.likes || 0,
+                    likes: p.likesCount || p._count?.likes || 0,
                     liked: likedPostIds.includes(p.id),
                     date: new Date(p.createdAt).toLocaleDateString('fr-FR'),
                     userId: p.userId,
                     createdAt: p.createdAt,
                     isEdited: p.isEdited || false,
+                    image: p.image || null,
+                    pdf: p.pdf || null,
                 }));
                 
                 // ✅ CORRECTED: Ajouter UNIQUEMENT les nouveaux posts (dédupliquer)

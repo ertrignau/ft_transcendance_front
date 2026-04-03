@@ -365,7 +365,7 @@ exports.modifyOneComment = async (req, res) => {
     const { commentId } = req.params;
     const { content, deleted } = req.body;
 
-    await prisma.comment.update({
+    const updatedComment = await prisma.comment.update({
       where: { id: commentId },
       data: {
         ...(content !== undefined && { content }),
@@ -373,7 +373,7 @@ exports.modifyOneComment = async (req, res) => {
       },
     });
 
-    return res.sendStatus(200);
+    return res.status(200).json(updatedComment);
   }
   catch (error) {
     switch (error.code) {

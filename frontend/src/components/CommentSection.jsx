@@ -33,7 +33,8 @@ export default function CommentSection({ postId }) {
 	const loadComments = async () => {
 		try {
 			const response = await commentsAPI.getCommentsByPost(postId);
-			setComments(response.comments || []);
+			// La réponse du BFF est un array directement
+			setComments(Array.isArray(response) ? response : response.comments || []);
 		} catch (err) {
 			console.error("Erreur chargement commentaires:", err);
 		}
@@ -45,14 +46,14 @@ export default function CommentSection({ postId }) {
 
 		setLoading(true);
 		try {
-			console.log('Tentative création commentaire pour post:', postId);
-			console.log('Token dans localStorage:', localStorage.getItem('access_token') ? 'Présent' : 'Absent');
+			console.log('🔵 Tentative création commentaire pour post:', postId);
 			const comment = await commentsAPI.createComment(postId, newComment);
-			console.log('Commentaire créé:', comment);
+			console.log('🔵 Commentaire créé:', comment);
+			console.log('🔵 Structure du commentaire:', { id: comment.id, userId: comment.userId, user: comment.user });
 			setComments([comment, ...comments]);
 			setNewComment("");
 		} catch (err) {
-			console.error("Erreur création commentaire:", err);
+			console.error("❌ Erreur création commentaire:", err);
 			alert(`Erreur lors de la création du commentaire: ${err.message}`);
 		} finally {
 			setLoading(false);
@@ -149,7 +150,7 @@ export default function CommentSection({ postId }) {
 								<>
 									<div className="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
 										<p className="font-semibold text-sm text-gray-900 dark:text-white">
-											{comment.user?.firstName} {comment.user?.lastName}
+											{comment.user?.username || 'Anonyme'}
 										</p>
 										<p className="text-gray-800 dark:text-gray-200 text-sm">{comment.content}</p>
 										{comment.isEdited && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('comment.edited')}</p>}

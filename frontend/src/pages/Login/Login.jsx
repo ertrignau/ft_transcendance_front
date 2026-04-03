@@ -137,6 +137,14 @@ export default function Login()
 				disabled={loading}
 			/>
 
+			<button
+				type="submit"
+				disabled={loading}
+				className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition mb-4 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+			>
+				{loading ? 'Connexion...' : 'Se connecter'}
+			</button>
+
 			<div className="relative flex justify-center text-sm mt-4">
 				<div className="absolute inset-0 flex items-center">
 					<div className="w-full border-t border-gray-300 dark:border-gray-600"></div>

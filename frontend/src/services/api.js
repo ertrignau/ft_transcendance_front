@@ -396,6 +396,20 @@ export const likesAPI = {
 	getLikesForPost: async (postId) => {
 		return fetchWithAuth(`/like/post/${postId}`);
 	},
+
+	getMyLikes: async () => {
+		try {
+			// Retourner les posts likés (juste les IDs)
+			const likedPosts = await fetchWithAuth(`/post/liked/me`);
+			const likedPostIds = Array.isArray(likedPosts) 
+				? likedPosts.map(post => post.id) 
+				: [];
+			return { likedPostIds };
+		} catch (error) {
+			console.warn('⚠️ Impossible de récupérer les posts likés:', error);
+			return { likedPostIds: [] };
+		}
+	},
 };
 
 // ===================================
@@ -516,6 +530,12 @@ export const profileAPI = {
 	updateProfile: async (data) => {
 		const userId = localStorage.getItem('user_id');
 		return userAPI.updateProfile(userId, data);
+	},
+	follow: async (userId) => {
+		return socialAPI.followUser(userId);
+	},
+	unfollow: async (userId) => {
+		return socialAPI.unfollowUser(userId);
 	},
 };
 

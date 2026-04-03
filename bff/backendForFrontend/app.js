@@ -1,4 +1,5 @@
 const express = require ('express');
+const path = require('path');
 const app = express();
 const multer = require('multer');
 const bffRoutes = require('./src/routes');
@@ -42,6 +43,6 @@ app.use((error, req, res, next) => {
 });
 
 app.use('/', bffRoutes);
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 module.exports = app;

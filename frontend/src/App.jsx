@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/12 15:59:56 by eric              #+#    #+#             */
-/*   Updated: 2026/03/23 16:39:57 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 17:42:24 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,7 @@ function App()
               <Route path="/messages" element={<Layout><Messages /></Layout>}  />
               <Route path="/notifications" element={<Layout><Notifications /></Layout>}  />
               <Route path="/profile" element={<Layout><Profile /></Layout>} />
-              <Route path="/profile/:username" element={<Layout><PublicProfile /></Layout> } />
+              <Route path="/profile/:userId" element={<Layout><PublicProfile /></Layout> } />
               <Route path="/settings" element={<Layout><Settings /></Layout>} />
               <Route path="/followers" element={<Layout><Followers /></Layout>} />
 

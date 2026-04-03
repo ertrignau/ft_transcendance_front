@@ -21,10 +21,11 @@ router.put('/auth', auth, authCtrl.changePassword);
 
 router.get('/user', auth, userCtrl.getAllUsers);
 router.get('/user/:userId', auth, userCtrl.getOneUser);
-router.put('/user/:userId', auth, upload.single('avatar'), userCtrl.modifyOneUser);
 router.put('/user/data42/:userId', auth, userCtrl.getBack42Datas);
+router.put('/user/:userId', auth, upload.single('avatar'), userCtrl.modifyOneUser);
 router.delete('/user/:userId', auth, userCtrl.deleteOneUser);
 router.get('/post/user/:userId', auth, userCtrl.getPostsFromUser);
+router.get('/post/liked/me', auth, userCtrl.getMyLikedPostIds);
 router.get('/post/commented/:userId', auth, userCtrl.getPostsCommentedByUser);
 router.get('/post/liked/:userId', auth, userCtrl.getPostsLikedByUser);
 router.get('/media/user/:userId', auth, userCtrl.getMediasFromUser);

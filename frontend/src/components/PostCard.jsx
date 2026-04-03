@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/06 16:21:25 by eric              #+#    #+#             */
-/*   Updated: 2026/03/24 14:15:22 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 17:36:46 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,7 +68,7 @@ export default function PostCard({ post, onLike, onDelete })
 				{/*HEADER (auteur + date) */}
 				<div className="flex justify-between items-start mb-2">
 					<div className="flex items-center space-x-3">
-						<Link to={`/profile/${post.author}`}>
+						<Link to={`/profile/${post.userId}`}>
 							<img
 								src={avatarUrl || post.avatar || `https://ui-avatars.com/api/?name=${post.author || 'User'}&background=3b82f6&color=fff`}
 								alt={post.author}
@@ -76,7 +76,7 @@ export default function PostCard({ post, onLike, onDelete })
 							/>
 						</Link>
 						<div>
-							<Link to={`/profile/${post.author}`}>
+							<Link to={`/profile/${post.userId}`}>
 								<h3 className="font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition">
 									{post.author}
 								</h3>
@@ -152,7 +152,33 @@ export default function PostCard({ post, onLike, onDelete })
 					) : (
 						<p className="text-gray-800 dark:text-gray-200 mb-4">{post.content}</p>
 					)}
-					{/*footer like*/}
+					
+					{/* Image ou PDF du post */}
+				<>
+					{post.image && (
+						<div className="mb-4 flex justify-center">
+							<img
+								src={post.image}
+								alt="Post content"
+								className="max-w-full max-h-[500px] rounded-lg object-cover"
+							/>
+						</div>
+					)}
+					{post.pdf && (
+						<div className="mb-4">
+							<a
+								href={post.pdf}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-block bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition"
+							>
+								📄 Voir le PDF
+							</a>
+						</div>
+					)}
+				</>
+				
+				{/*footer like*/}
 					<div className="flex items-center space-x-6">
 						<button
 							onClick={() => onLike(post.id)}

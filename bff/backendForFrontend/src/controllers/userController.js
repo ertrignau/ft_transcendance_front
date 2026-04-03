@@ -51,7 +51,11 @@ exports.getAllUsers = async (req, res) => {
         postsCount:     postsCount?.count     ?? 0,
         followersCount: followersCount?.count ?? 0,
         followingCount: friendsCount?.count   ?? 0,
-        createdAt:      user.createdAt,
+        login42:        auth.login42 || null,
+      postsCount:     postsCount?.count     ?? 0,
+      followersCount: followersCount?.count ?? 0,
+      followingCount: friendsCount?.count   ?? 0,
+      createdAt:      user.createdAt,
       };
     });
 
@@ -65,13 +69,15 @@ exports.getAllUsers = async (req, res) => {
 exports.getOneUser = async (req, res) => {
   try {
     const { userId } = req.params;
+    const currentUserId = req.userId; // From auth middleware
 
-    const [userResponse, authResponse, followersCount, friendsCount, postsCount] = await Promise.all([
+    const [userResponse, authResponse, followersCount, friendsCount, postsCount, isFollowingResponse] = await Promise.all([
       fetch(`${process.env.USER_SERVICE_URL}/${userId}`),
       fetch(`${process.env.AUTH_SERVICE_URL}/user/${userId}`),
       fetch(`${process.env.SOCIAL_SERVICE_URL}/followersCount/${userId}`).then(r => r.json()),
       fetch(`${process.env.SOCIAL_SERVICE_URL}/friendsCount/${userId}`).then(r => r.json()),
       fetch(`${process.env.CONTENT_SERVICE_URL}/post/count/user/${userId}`).then(r => r.json()),
+      currentUserId ? fetch(`${process.env.SOCIAL_SERVICE_URL}/friends/${currentUserId}`).then(r => r.json()).catch(() => []) : Promise.resolve([]),
     ]);
 
     if (userResponse.status === 404) {
@@ -91,6 +97,9 @@ exports.getOneUser = async (req, res) => {
       authResponse.json(),
     ]);
 
+    // Check if current user is following this profile
+    const isFollowing = currentUserId && isFollowingResponse ? isFollowingResponse.some(friend => friend.id === userId) : false;
+
     return res.status(200).json({
       id:             user.id,
       username:       user.username,
@@ -103,11 +112,14 @@ exports.getOneUser = async (req, res) => {
       postsCount:     postsCount?.count     ?? 0,
       followersCount: followersCount?.count ?? 0,
       followingCount: friendsCount?.count   ?? 0,
+      login42:        auth.login42 || null,
       createdAt:      user.createdAt,
+      isFollowing:    isFollowing,
     });
 
   }
   catch (error) {
+    console.error('Error in getOneUser:', error);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
@@ -409,6 +421,29 @@ exports.getPostsCommentedByUser = async (req, res) => {
 
   }
   catch (error) {
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.getMyLikedPostIds = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const likesResponse = await fetch(`${process.env.CONTENT_SERVICE_URL}/like/user/${userId}`);
+
+    if (!likesResponse.ok) {
+      return res.status(503).json({ error: 'Content service unavailable.' });
+    }
+
+    const likes = await likesResponse.json();
+    const postIds = [...new Set(likes.map(like => like.postId))];
+
+    // Retourner juste les IDs des posts avec des objets minimaux
+    const result = postIds.map(id => ({ id }));
+    return res.status(200).json(result);
+  }
+  catch (error) {
+    console.error('❌ [BFF] getMyLikedPostIds error:', error);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };

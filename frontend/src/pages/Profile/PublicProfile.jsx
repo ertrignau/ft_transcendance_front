@@ -6,7 +6,7 @@
 /*   By: eric <eric@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/12 16:02:01 by eric              #+#    #+#             */
-/*   Updated: 2026/03/27 16:41:56 by eric             ###   ########.fr       */
+/*   Updated: 2026/04/03 17:41:35 by eric             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,12 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import { useAvatar } from '../../hooks/useAvatar';
-import { profileAPI, followersAPI } from '../../services/api';
+import { profileAPI, followersAPI, postsAPI } from '../../services/api';
 import PostCard from '../../components/PostCard';
 import { FiX } from 'react-icons/fi';
 
 export default function PublicProfile() {
-	const { username } = useParams();
+	const { userId } = useParams();
 	const { user, toggleLike, deletePost } = useAppContext();
 	const [profile, setProfile] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -42,14 +42,27 @@ export default function PublicProfile() {
 			setLoading(true);
 			setError(null);
 			try {
-				console.log('🔍 Chargement du profil:', username);
-				const data = await profileAPI.getByUsername(username);
-				console.log('📊 Profile complet:', data);
-				console.log('📝 Posts retournés:', data.posts);
-				console.log('✅ Is registered:', data.isRegistered);
-				console.log('🔢 Nombre de posts:', data.posts ? data.posts.length : 0);
-				setProfile(data);
-				setIsFollowing(data.isFollowing || false);
+				console.log('🔍 Chargement du profil:', userId);
+				const [profileData, postsData] = await Promise.all([
+					profileAPI.getProfile(userId),
+					postsAPI.getUserPosts(userId, 10)
+				]);
+				console.log('📊 Profile complet:', profileData);
+				console.log('📝 Posts retournés:', postsData);
+				
+				// Normaliser les données du profil avec _count
+				const normalizedProfile = {
+					...profileData,
+					posts: postsData || [],
+					_count: {
+						followers: profileData.followersCount ?? 0,
+						following: profileData.followingCount ?? 0,
+						posts: (postsData?.length || profileData.postsCount) ?? 0,
+					}
+				};
+				
+				setProfile(normalizedProfile);
+				setIsFollowing(profileData.isFollowing || false);
 			} catch (err) {
 				console.error('❌ Erreur chargement profil:', err);
 				setError('Profil introuvable');
@@ -59,7 +72,7 @@ export default function PublicProfile() {
 		};
 
 		loadProfile();
-	}, [username]);
+	}, [userId]);
 
 	const handleFollow = async () => {
 		if (!user || followLoading) return;
@@ -71,15 +84,15 @@ export default function PublicProfile() {
 			...prev,
 			_count: {
 				...prev._count,
-				following: Math.max(0, (prev._count?.following || 0) + (wasFollowing ? -1 : 1)),
+				followers: Math.max(0, (prev._count?.followers || 0) + (wasFollowing ? -1 : 1)),
 			},
 		}));
 
 		try {
 			if (wasFollowing) {
-				await profileAPI.unfollow(username);
+				await profileAPI.unfollow(userId);
 			} else {
-				await profileAPI.follow(username);
+				await profileAPI.follow(userId);
 			}
 		} catch (err) {
 			console.error('❌ Erreur follow/unfollow:', err);
@@ -88,7 +101,7 @@ export default function PublicProfile() {
 				...prev,
 				_count: {
 					...prev._count,
-					following: Math.max(0, (prev._count?.following || 0) + (wasFollowing ? 1 : -1)),
+					followers: Math.max(0, (prev._count?.followers || 0) + (wasFollowing ? 1 : -1)),
 				},
 			}));
 		} finally {
@@ -102,8 +115,8 @@ export default function PublicProfile() {
 		setModalList([]);
 		try {
 			const data = type === 'followers'
-				? await followersAPI.getFollowers(username)
-				: await followersAPI.getFollowing(username);
+				? await followersAPI.getFollowers(userId)
+				: await followersAPI.getFollowing(userId);
 			// L'API retourne un tableau directement
 			setModalList(Array.isArray(data) ? data : (data.followers || data.following || []));
 		} catch (err) {
@@ -188,8 +201,8 @@ export default function PublicProfile() {
 								</span>
 							)}
 
-							{/* Bouton follow — uniquement si inscrit ET pas mon propre profil */}
-							{user && user.username !== profile.username && profile.isRegistered && (
+						{/* Bouton follow — uniquement si connecté ET pas mon propre profil */}
+						{user && user.id !== userId && (
 								<button
 									onClick={handleFollow}
 									disabled={followLoading}
@@ -219,7 +232,7 @@ export default function PublicProfile() {
 						<div className="flex space-x-6">
 							<div>
 								<span className="font-bold text-gray-900 dark:text-white">
-									{profile._count?.posts || 0}
+									{profile.posts?.length || 0}
 								</span>
 								<span className="text-gray-600 dark:text-gray-400 ml-1">posts</span>
 							</div>
@@ -228,7 +241,7 @@ export default function PublicProfile() {
 								className="hover:underline text-left"
 							>
 								<span className="font-bold text-gray-900 dark:text-white">
-									{profile._count?.following || 0}
+									{profile._count?.followers || 0}
 								</span>
 								<span className="text-gray-600 dark:text-gray-400 ml-1">followers</span>
 							</button>
@@ -237,7 +250,7 @@ export default function PublicProfile() {
 								className="hover:underline text-left"
 							>
 								<span className="font-bold text-gray-900 dark:text-white">
-									{profile._count?.followers || 0}
+									{profile._count?.following || 0}
 								</span>
 								<span className="text-gray-600 dark:text-gray-400 ml-1">following</span>
 							</button>
@@ -281,13 +294,16 @@ export default function PublicProfile() {
 							const normalized = {
 								id: post.id,
 								content: post.content,
+								image: post.image || null,
+								pdf: post.pdf || null,
 								author: post.user?.username || post.author || profile.username,
 								avatar: post.user?.avatar || post.avatar || `https://ui-avatars.com/api/?name=${profile.firstName || profile.username}&background=3b82f6&color=fff`,
-								likes: post._count?.likes ?? post.likes ?? 0,
+								likes: post._count?.likes ?? post.likes ?? post.likesCount ?? 0,
 								liked: post.isLiked || post.liked || false,
 								date: new Date(post.createdAt).toLocaleDateString('fr-FR'),
 								userId: post.userId || post.user?.id,
 								createdAt: post.createdAt,
+								isEdited: post.isEdited || false,
 							};
 							return <PostCard 
 								key={post.id} 
@@ -345,7 +361,7 @@ export default function PublicProfile() {
 									{modalList.map(u => (
 										<li key={u.id}>
 											<Link
-												to={`/profile/${u.username}`}
+												to={`/profile/${u.id}`}
 												onClick={() => setModal(null)}
 												className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
 											>
